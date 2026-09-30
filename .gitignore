@@ -1,0 +1,24 @@
+# Secret API keys
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+
+# Generated movie data
+data/tmdb_movies.csv
+data/movie_embeddings.npy
+
+# Temporary catalog/progress files
+data/*_progress.csv
+data/*_temp.csv
+
+# VS Code
+.vscode/
+
+# MovieLens dataset
+data/ml-32m/
