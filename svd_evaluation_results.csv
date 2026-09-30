@@ -1,0 +1,2 @@
+Model,Factors,Users,Recall@10,NDCG@10,Random State
+Truncated SVD,50,1000,0.258512332496345,0.39299270932098884,42

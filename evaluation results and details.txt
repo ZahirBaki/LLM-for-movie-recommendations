@@ -1,0 +1,335 @@
+Collaborative Filtering Evaluation – Experiment 1
+
+1. Objective
+
+The purpose of this experiment was to evaluate the collaborative filtering
+component of the movie recommender system.
+
+Three recommendation approaches were compared:
+
+1. Popularity Baseline
+2. Raw Item-Item KNN Collaborative Filtering
+3. Mean-Centered Item-Item KNN Collaborative Filtering
+
+The goal was to determine whether collaborative filtering provides better
+personalized recommendations than simply recommending popular movies, and
+to compare raw ratings against mean-centered ratings.
+
+
+2. Dataset
+
+Dataset: MovieLens 32M
+
+Original dataset:
+- Ratings: 32,000,204
+- Users: 200,948
+- Movies with ratings: 84,432
+
+The MovieLens ratings were used for the collaborative filtering experiment.
+
+
+3. Definition of a Relevant Movie
+
+A movie was considered relevant/liked when:
+
+Rating >= 4.0
+
+Ratings below 4.0 were not considered relevant for evaluation, although
+they remained available as part of the collaborative filtering training
+data.
+
+
+4. Evaluation Users
+
+Users were required to have at least 10 positive ratings (rating >= 4.0).
+
+Eligible users:
+191,556
+
+From these users, 1,000 users were randomly selected for evaluation.
+
+Random state:
+42
+
+Using a fixed random state makes the experiment reproducible.
+
+
+5. Train/Test Split
+
+For each of the 1,000 evaluation users, 20% of their positively rated
+movies were randomly hidden.
+
+These hidden ratings formed the test set.
+
+Training ratings:
+31,983,686
+
+Hidden positive test ratings:
+16,518
+
+The hidden ratings were removed from the training data before the
+collaborative models were constructed.
+
+A leakage check confirmed that none of the hidden test rows remained
+in the training data.
+
+
+6. Movie Filtering
+
+Movies were required to have at least 50 ratings in the training data.
+
+Minimum movie ratings:
+50
+
+Movies remaining after filtering:
+16,033
+
+Ratings remaining after filtering:
+31,482,265
+
+
+7. Recommendation Configuration
+
+Collaborative filtering type:
+Item-item collaborative filtering
+
+Algorithm:
+K-Nearest Neighbors (KNN)
+
+Similarity metric:
+Cosine similarity
+
+KNN neighbors retrieved per seed movie:
+50
+
+Maximum positive seed movies per user:
+10
+
+Final recommendation list:
+Top 10 movies
+
+
+8. Models / Methods Evaluated
+
+
+A. Popularity Baseline
+
+The popularity baseline did not use personalization or machine learning.
+
+Movies were ranked according to how many ratings they received in the
+training data.
+
+For each user, movies they had already rated were removed and the 10 most
+popular remaining movies were recommended.
+
+
+B. Raw KNN Collaborative Filtering
+
+The original MovieLens rating values were used to construct a movie-user
+matrix.
+
+KNN with cosine similarity was used to identify movies with similar user
+rating patterns.
+
+For each user, up to 10 positively rated movies were used as seed movies.
+
+For each seed movie, 50 nearest movie neighbors were retrieved.
+
+Candidate similarity scores were combined, movies already rated by the
+user were removed, and the 10 highest-scoring candidates were recommended.
+
+
+C. Mean-Centered KNN Collaborative Filtering
+
+This model used the same KNN and cosine-similarity approach.
+
+However, before constructing the movie-user matrix, each user's average
+rating was subtracted from their individual ratings.
+
+Example:
+
+User average rating = 3.5
+
+Movie rated 5.0 -> centered rating = +1.5
+Movie rated 4.0 -> centered rating = +0.5
+Movie rated 3.5 -> centered rating = 0.0
+Movie rated 2.0 -> centered rating = -1.5
+
+The purpose of mean-centering was to account for differences between users
+who generally give high ratings and users who generally give low ratings.
+
+
+9. Evaluation Metrics
+
+Two metrics were used:
+
+Recall@10
+
+Recall@10 measures how many of the hidden relevant movies were recovered
+within the model's Top-10 recommendations.
+
+Higher Recall@10 is better.
+
+
+NDCG@10
+
+NDCG@10 measures both whether relevant movies were recovered and where
+they appeared in the Top-10 ranking.
+
+Relevant movies appearing near the top of the recommendation list receive
+more credit than relevant movies appearing near the bottom.
+
+Higher NDCG@10 is better.
+
+
+10. Results
+
+------------------------------------------------------------
+Model                     Recall@10        NDCG@10
+------------------------------------------------------------
+
+Popularity Baseline       0.108621         0.175059
+
+Raw KNN                   0.175385         0.258277
+
+Mean-Centered KNN         0.145365         0.228090
+
+------------------------------------------------------------
+
+
+Rounded results:
+
+Popularity Baseline
+Recall@10: 0.1086 (10.86%)
+NDCG@10:   0.1751
+
+Raw KNN
+Recall@10: 0.1754 (17.54%)
+NDCG@10:   0.2583
+
+Mean-Centered KNN
+Recall@10: 0.1454 (14.54%)
+NDCG@10:   0.2281
+
+
+11. Recall@10 Comparison
+
+Raw KNN vs Popularity Baseline:
+
+0.1754 - 0.1086 = 0.0668
+
+Raw KNN achieved approximately 6.68 percentage points higher Recall@10.
+
+Relative improvement:
+
+(0.1754 - 0.1086) / 0.1086 ≈ 61.5%
+
+Therefore, Raw KNN achieved approximately 61.5% higher Recall@10 relative
+to the popularity baseline.
+
+
+Mean-Centered KNN vs Popularity:
+
+0.1454 - 0.1086 = 0.0368
+
+Mean-Centered KNN achieved approximately 3.68 percentage points higher
+Recall@10 than the popularity baseline.
+
+
+Raw KNN vs Mean-Centered KNN:
+
+0.1754 - 0.1454 = 0.0300
+
+Raw KNN achieved approximately 3.00 percentage points higher Recall@10.
+
+
+12. NDCG@10 Comparison
+
+Popularity Baseline:
+0.1751
+
+Mean-Centered KNN:
+0.2281
+
+Raw KNN:
+0.2583
+
+Raw KNN achieved the highest NDCG@10.
+
+This indicates that Raw KNN not only recovered more hidden relevant movies
+than the other approaches, but also produced better rankings of relevant
+movies within the Top-10 recommendation lists.
+
+
+13. Interpretation
+
+Both collaborative filtering approaches outperformed the non-personalized
+popularity baseline on Recall@10 and NDCG@10.
+
+This provides evidence that collaborative filtering is learning useful
+personalized user-item patterns rather than simply reproducing movie
+popularity.
+
+Contrary to the initial expectation that mean-centering might improve the
+recommendations, Raw KNN performed better than Mean-Centered KNN on both
+evaluation metrics under this experimental setup.
+
+Raw KNN achieved:
+
+Recall@10 = 0.1754
+NDCG@10   = 0.2583
+
+Mean-Centered KNN achieved:
+
+Recall@10 = 0.1454
+NDCG@10   = 0.2281
+
+Popularity achieved:
+
+Recall@10 = 0.1086
+NDCG@10   = 0.1751
+
+Therefore, Raw KNN was the strongest of the three approaches in this
+experiment.
+
+These results do not establish that Raw KNN is universally superior to
+mean-centered collaborative filtering. They show that Raw KNN performed
+better under the dataset, preprocessing, recommendation strategy,
+hyperparameters, and evaluation procedure used in this experiment.
+
+
+14. Current Conclusion
+
+The experiment establishes a useful collaborative filtering baseline.
+
+Current strongest collaborative approach:
+
+Raw Item-Item KNN
++ Cosine Similarity
++ MovieLens user-rating behavior
+
+Current performance:
+
+Recall@10 = 0.1754
+NDCG@10   = 0.2583
+
+It outperformed both:
+
+- the popularity baseline
+- mean-centered item-item KNN
+
+The results are saved programmatically in:
+
+collaborative_evaluation_results.csv
+
+
+15. Next Step
+
+The next stage is to determine whether Raw KNN should be adopted directly
+as Collaborative Recommender v1 or whether it should first be compared
+against another collaborative filtering algorithm, such as matrix
+factorization.
+
+After selecting the collaborative approach, the collaborative recommender
+can be connected to the existing TMDB content-based recommender to create
+the hybrid movie recommendation system.

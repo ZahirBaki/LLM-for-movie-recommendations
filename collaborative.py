@@ -130,6 +130,45 @@ print(
     "Users remaining:",
     filtered_ratings["userId"].nunique()
 )
+# --------------------------------------------------
+# 7B. MEAN-CENTER RATINGS BY USER
+# --------------------------------------------------
+
+print("\nMean-centering ratings by user...")
+
+# Calculate each user's average rating
+user_mean_ratings = (
+    filtered_ratings
+    .groupby("userId")["rating"]
+    .mean()
+)
+
+# Add each user's average to their ratings
+filtered_ratings["user_mean"] = (
+    filtered_ratings["userId"]
+    .map(user_mean_ratings)
+)
+
+# Rating relative to that user's normal rating
+filtered_ratings["centered_rating"] = (
+    filtered_ratings["rating"]
+    - filtered_ratings["user_mean"]
+)
+
+print("Mean-centering complete.")
+
+print("\nExample centered ratings:")
+print(
+    filtered_ratings[
+        [
+            "userId",
+            "movieId",
+            "rating",
+            "user_mean",
+            "centered_rating"
+        ]
+    ].head(10)
+)
 
 # --------------------------------------------------
 # 8. CREATE MOVIE-USER SPARSE MATRIX
@@ -174,6 +213,24 @@ print("Matrix shape:", movie_user_matrix.shape)
 print("Stored ratings:", movie_user_matrix.nnz)
 
 # --------------------------------------------------
+# 8B. CREATE MEAN-CENTERED MOVIE-USER MATRIX
+# --------------------------------------------------
+
+print("\nCreating mean-centered movie-user sparse matrix...")
+
+centered_movie_user_matrix = csr_matrix(
+    (
+        filtered_ratings["centered_rating"].values,
+        (row_indices, column_indices)
+    ),
+    shape=(len(movie_ids), len(user_ids))
+)
+
+print("Mean-centered sparse matrix created.")
+print("Matrix shape:", centered_movie_user_matrix.shape)
+print("Stored values:", centered_movie_user_matrix.nnz)
+
+# --------------------------------------------------
 # 9. TRAIN ITEM-ITEM COLLABORATIVE MODEL
 # --------------------------------------------------
 
@@ -188,7 +245,16 @@ model.fit(movie_user_matrix)
 
 print("Collaborative filtering model ready.")
 
+print("\nTraining mean-centered collaborative model...")
 
+centered_model = NearestNeighbors(
+    metric="cosine",
+    algorithm="brute"
+)
+
+centered_model.fit(centered_movie_user_matrix)
+
+print("Mean-centered collaborative model ready.")
 # --------------------------------------------------
 # 10. FUNCTION TO FIND SIMILAR MOVIES
 # --------------------------------------------------
@@ -262,9 +328,119 @@ def recommend_similar_movies(movie_title, n=10):
         if recommendation_number > n:
             break
 
+# --------------------------------------------------
+# 10B. COMPARE RAW VS MEAN-CENTERED MODEL
+# --------------------------------------------------
+
+def compare_models(movie_title, n=10):
+
+    matches = movies[
+        movies["title"].str.contains(
+            movie_title,
+            case=False,
+            na=False,
+            regex=False
+        )
+    ]
+
+    if matches.empty:
+        print(f"\nMovie not found: {movie_title}")
+        return
+
+    selected_movie = matches.iloc[0]
+
+    movie_id = selected_movie["movieId"]
+    full_title = selected_movie["title"]
+
+    if movie_id not in movie_to_index:
+        print(
+            f"\n{full_title} does not have enough ratings "
+            "for collaborative filtering."
+        )
+        return
+
+    matrix_index = movie_to_index[movie_id]
+
+    # Raw-rating model
+    raw_distances, raw_indices = model.kneighbors(
+        movie_user_matrix[matrix_index],
+        n_neighbors=n + 1
+    )
+
+    # Mean-centered model
+    centered_distances, centered_indices = (
+        centered_model.kneighbors(
+            centered_movie_user_matrix[matrix_index],
+            n_neighbors=n + 1
+        )
+    )
+
+    print("\n" + "=" * 70)
+    print(f"COMPARISON FOR: {full_title}")
+    print("=" * 70)
+
+    print("\nRAW RATINGS:\n")
+
+    number = 1
+
+    for distance, index in zip(
+        raw_distances.flatten(),
+        raw_indices.flatten()
+    ):
+
+        recommended_movie_id = index_to_movie[index]
+
+        if recommended_movie_id == movie_id:
+            continue
+
+        movie_info = movies[
+            movies["movieId"] == recommended_movie_id
+        ].iloc[0]
+
+        similarity = 1 - distance
+
+        print(
+            f"{number}. {movie_info['title']} "
+            f"| similarity: {similarity:.3f}"
+        )
+
+        number += 1
+
+        if number > n:
+            break
+
+    print("\nMEAN-CENTERED RATINGS:\n")
+
+    number = 1
+
+    for distance, index in zip(
+        centered_distances.flatten(),
+        centered_indices.flatten()
+    ):
+
+        recommended_movie_id = index_to_movie[index]
+
+        if recommended_movie_id == movie_id:
+            continue
+
+        movie_info = movies[
+            movies["movieId"] == recommended_movie_id
+        ].iloc[0]
+
+        similarity = 1 - distance
+
+        print(
+            f"{number}. {movie_info['title']} "
+            f"| similarity: {similarity:.3f}"
+        )
+
+        number += 1
+
+        if number > n:
+            break
 
 # --------------------------------------------------
 # 11. TEST
 # --------------------------------------------------
 
-recommend_similar_movies("Interstellar", n=10)
+compare_models("Interstellar", n=10)
