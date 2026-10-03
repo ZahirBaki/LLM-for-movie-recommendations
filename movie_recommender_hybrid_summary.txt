@@ -1,0 +1,596 @@
+MOVIE RECOMMENDER SYSTEM
+Hybrid Architecture and Evaluation Summary
+
+1. PROJECT GOAL
+
+The goal of the project is to build an AI movie recommender that can recommend movies from a user's preferences and later support natural-language conversation.
+
+The recommendation core combines two different sources of information:
+
+1. Collaborative recommendation using MovieLens and SVD.
+2. Content-based recommendation using TMDB metadata and semantic embeddings.
+
+Instead of permanently averaging the two models, the final system uses a controller that chooses the appropriate recommendation method for the request.
+
+
+2. DATA AND CONTENT CATALOG
+
+The TMDB catalog contains 62,398 movies from 1950–2026.
+
+The stored metadata includes:
+- TMDB ID
+- Title
+- Release date/year
+- Genres
+- Director
+- Actors
+- Overview
+- Language
+- Popularity
+- Vote average/count
+- Runtime
+- Poster path
+
+Movie overviews were converted to semantic embeddings using the pretrained all-MiniLM-L6-v2 Sentence Transformer model.
+
+The embedding matrix has shape:
+
+62,398 × 384
+
+The embeddings are used to measure semantic similarity between movie stories/overviews.
+
+
+3. CONTENT-BASED RECOMMENDER
+
+The content model uses several signals:
+
+- Story/overview similarity
+- Genre similarity
+- Director similarity
+- Actor similarity
+
+The base weighting is:
+
+Story:    40%
+Genre:    25%
+Director: 20%
+Actor:    15%
+
+The weights are dynamically renormalized depending on which information is available.
+
+The model can also infer genres, actors, and directors from a user's favorite movies. For example, if a user selects Interstellar, the system can use metadata associated with Interstellar even if the user does not explicitly type Christopher Nolan or the movie's genres.
+
+A multi-match bonus can also be added when a candidate matches the user through several content signals.
+
+
+4. IMPROVING THE CONTENT MODEL
+
+An important issue was discovered during evaluation.
+
+Originally, actor and director scores were only active when the user explicitly supplied an actor or director. If the user only supplied favorite movies, the model inferred genres but did not properly use the actors and directors from those favorite movies.
+
+This was changed.
+
+The current content model now infers:
+- Genres from favorite movies
+- Actors from favorite movies
+- Directors from favorite movies
+
+After this change, recommendations related through actors and directors became much more visible.
+
+
+5. CONTENT COMPONENT EVALUATION
+
+A cleaned 1,000-user evaluation was performed.
+
+Each user had:
+- At least 6 unique positive movies available in the mapped catalog
+- Exactly 5 movies used as favorites
+- Remaining positive movies treated as hidden relevant movies
+
+Positive ratings were ratings >= 4.
+
+Results:
+
+Model / Component              Recall@10    NDCG@10    Hits
+----------------------------------------------------------------
+Story only                     0.008580     0.035475    296
+Genre only                     0.000183     0.001080     13
+Actor only                     0.020977     0.095758    789
+Director only                  0.019267     0.098762    802
+Current combined content       0.020857     0.101137    827
+
+This experiment showed that actor and director information contributed substantially more than genre alone in this MovieLens-based evaluation.
+
+The combined content model produced the highest NDCG and total number of hits, while actor-only had a slightly higher Recall@10.
+
+These results also showed that the content model improved after actor/director inference was added.
+
+
+6. COLLABORATIVE FILTERING WITH SVD
+
+MovieLens 32M was used for collaborative recommendation.
+
+Dataset size:
+- 32,000,204 ratings
+- 200,948 users
+- 84,432 rated movies before filtering
+
+Movies with fewer than 50 ratings were removed for the SVD model.
+
+After filtering:
+- 16,034 movies
+- 31,498,689 ratings
+
+The user-movie sparse matrix has shape:
+
+200,947 × 16,034
+
+Truncated SVD was trained on this matrix.
+
+
+7. CHOOSING THE NUMBER OF SVD FACTORS
+
+Several latent-factor sizes were evaluated:
+
+Factors    Recall@10    NDCG@10    Explained Variance
+------------------------------------------------------
+20         0.232794     0.361311   0.299241
+50         0.258512     0.392993   0.360619
+100        0.227746     0.358389   0.414221
+200        0.196059     0.310909   0.481836
+
+50 factors produced the strongest Recall@10 and NDCG@10 among these tested settings.
+
+Therefore, the project uses:
+
+N_FACTORS = 50
+
+
+8. COLD-START SVD METHOD
+
+The final product needs to recommend movies for a new user who does not already exist in MovieLens.
+
+For a new user, the system:
+
+1. Receives the user's favorite movies.
+2. Maps their TMDB IDs to MovieLens movies.
+3. Finds the SVD latent vector for each usable favorite movie.
+4. Averages those movie vectors to create a temporary preference representation.
+5. Scores the available MovieLens movies against that temporary vector.
+6. Excludes the supplied favorite movies.
+7. Returns the highest-ranked candidates.
+
+This is a new-user heuristic based on the learned SVD item space. It is not the same as using a fully learned historical MovieLens user factor.
+
+
+9. STRICT COLD-START EVALUATION
+
+A more realistic cold-start experiment was created to reduce leakage.
+
+Settings:
+- Positive rating >= 4
+- 1,000 evaluation users
+- Exactly 5 favorite movies per user
+- Evaluation users completely removed from SVD training
+- Remaining positive movies used as hidden relevant movies
+- Minimum 50 training ratings per SVD movie
+- SVD with 50 factors
+- Recall@10 and NDCG@10
+
+The evaluation confirmed that no evaluation users were present in the SVD training data.
+
+Results:
+
+Model                     Recall@10    NDCG@10    Total Hits
+----------------------------------------------------------------
+Content                    0.008402     0.032561     259
+SVD Cold-Start             0.115445     0.400290    3,635
+
+This was one of the most important results in the project.
+
+
+10. WHY SVD PERFORMED BETTER
+
+On the MovieLens held-out-positive evaluation, SVD was much stronger than the content model.
+
+Recall@10:
+
+Content:
+0.008402
+
+SVD:
+0.115445
+
+NDCG@10:
+
+Content:
+0.032561
+
+SVD:
+0.400290
+
+SVD also produced 3,635 total hits compared with 259 for the content model in that strict experiment.
+
+The main reason is that the evaluation target is based on actual MovieLens user behavior.
+
+SVD learns collaborative patterns from millions of ratings. It can discover latent relationships such as groups of movies that tend to be liked by similar users even when those movies do not have obviously similar genres, actors, directors, or plot descriptions.
+
+The content model mainly asks:
+
+"How similar is this movie to what the user says they like?"
+
+The collaborative model asks something closer to:
+
+"People whose preferences align with these movies also tend to like what other movies?"
+
+For predicting held-out MovieLens likes, the collaborative signal was much stronger.
+
+However, this does NOT mean that the content model is unnecessary.
+
+
+11. WHY CONTENT IS STILL NEEDED
+
+MovieLens does not provide collaborative evidence for every movie in the TMDB catalog.
+
+The SVD model contains 16,034 filtered MovieLens movies, while the TMDB content catalog contains 62,398 movies.
+
+The TMDB-to-MovieLens mapping also does not cover the entire catalog.
+
+This is especially important for:
+- New movies
+- 2024–2026 releases
+- Less-rated movies
+- Movies outside usable MovieLens coverage
+
+SVD cannot reliably recommend an item that has no collaborative representation.
+
+The content model can.
+
+Content is also necessary for requests involving:
+- Actors
+- Directors
+- Genres
+- Release years
+- Exclusions
+- Explicit constraints
+- Explanations based on movie metadata
+
+Therefore, SVD is stronger for the measured collaborative relevance task, while content provides capabilities that SVD alone cannot provide.
+
+
+12. FIRST HYBRID APPROACH: FIXED 50/50 FUSION
+
+The first hybrid approach combined content and SVD rankings with equal weights:
+
+Hybrid score =
+0.50 × content rank score
++
+0.50 × SVD rank score
+
+The system took the top candidates from both recommenders and merged them.
+
+This approach did not perform as well as expected.
+
+
+13. HYBRID WEIGHT EVALUATION
+
+Different content/SVD weights were evaluated on 1,000 users.
+
+Content / SVD        Recall@10    NDCG@10
+------------------------------------------
+0.0 / 1.0            0.208614     0.308711
+0.1 / 0.9            0.208020     0.301705
+0.2 / 0.8            0.207626     0.296780
+0.3 / 0.7            0.205888     0.289327
+0.4 / 0.6            0.203644     0.279944
+0.5 / 0.5            0.134237     0.176345
+0.6 / 0.4            0.016807     0.028999
+1.0 / 0.0            0.005271     0.004826
+
+Under this evaluation setup, increasing the influence of content generally reduced the measured recommendation performance.
+
+Pure SVD had the highest measured Recall@10 and NDCG@10 in this weight experiment.
+
+This result was a strong reason not to use a permanent 50/50 weighted hybrid.
+
+
+14. HYBRID V3: FORCED CONTENT EXPLORATION
+
+A second hybrid architecture was tested.
+
+Instead of averaging scores, the Top 10 list contained:
+
+- 8 recommendations from SVD
+- 2 content-only movies unavailable to SVD
+
+The intention was to preserve SVD's strong collaborative ranking while giving some space to cold/new content items.
+
+A strict evaluation was then performed using the same 1,000-user cold-start setup.
+
+Results:
+
+Model                     Recall@10    NDCG@10    Total Hits
+----------------------------------------------------------------
+Pure SVD                   0.115445     0.400290    3,635
+Hybrid V3                  0.099191     0.361344    3,040
+
+There were 397 hidden relevant movies outside SVD coverage.
+
+However, the two forced content-cold slots produced only 2 hits in this evaluation.
+
+Therefore, forcing content items into every Top 10 recommendation list reduced measured relevance.
+
+
+15. FINAL HYBRID DESIGN
+
+Based on the experiments, the final system does not use a fixed weighted hybrid and does not force content recommendations into every Top 10 list.
+
+Instead, it uses a routing/controller architecture.
+
+Conceptually:
+
+                         USER REQUEST
+                              |
+                              v
+                    RECOMMENDATION ENGINE
+                              |
+                +-------------+-------------+
+                |                           |
+                v                           v
+              SVD                       CONTENT
+        Collaborative              Content-based
+        recommendation             recommendation
+                |                           |
+                +-------------+-------------+
+                              |
+                              v
+                       FINAL RESULTS
+
+The controller decides which model is appropriate.
+
+
+16. CURRENT ROUTING RULES
+
+Normal favorite-movie request:
+
+If enough favorite movies are available to SVD, use:
+
+SVD — collaborative primary
+
+Example:
+
+Favorites:
+- Interstellar
+- The Godfather
+- The Dark Knight
+
+All three were usable by SVD, so the system selected the SVD collaborative model.
+
+
+Soft metadata preference:
+
+Example:
+
+"I like Christian Bale."
+
+This is represented as:
+
+favorite_actors=["Christian Bale"]
+
+The actor is used as a scoring preference, but recommendations without Christian Bale are still allowed.
+
+The system uses:
+
+CONTENT — soft preference
+
+
+Hard constraint:
+
+Example:
+
+"Only recommend Christian Bale movies."
+
+This becomes:
+
+required_actors=["Christian Bale"]
+
+Every result must contain Christian Bale.
+
+The system uses:
+
+CONTENT — hard constraints
+
+
+Exclusion:
+
+Example:
+
+"Something like Interstellar, but not directed by Christopher Nolan."
+
+This becomes:
+
+exclude_directors=["Christopher Nolan"]
+
+Christopher Nolan movies are removed.
+
+
+Year and genre constraints:
+
+Example:
+
+"Give me science-fiction movies from 2024 or later."
+
+This becomes:
+
+required_genres=["Science Fiction"]
+min_year=2024
+
+Every returned movie must satisfy both conditions.
+
+
+17. FINAL CONTROLLER TESTS
+
+The controller was tested successfully.
+
+TEST 1:
+Favorites:
+Interstellar, The Godfather, The Dark Knight
+
+Result:
+SVD — collaborative primary
+
+TEST 2:
+Require Christian Bale
+
+Result:
+CONTENT — hard constraints
+
+All returned movies contained Christian Bale.
+
+TEST 3:
+Require Christopher Nolan
+
+Result:
+CONTENT — hard constraints
+
+All returned movies were directed by Christopher Nolan.
+
+TEST 4:
+Like Interstellar but exclude Christopher Nolan
+
+Result:
+CONTENT — hard constraints
+
+No returned movie was directed by Christopher Nolan.
+
+TEST 5:
+Require Science Fiction and release year >= 2024
+
+Result:
+CONTENT — hard constraints
+
+Every result was science fiction and released in 2024 or later.
+
+TEST 6:
+Soft Christian Bale preference
+
+Result:
+CONTENT — soft preference
+
+Christian Bale movies were promoted, but movies without Christian Bale were still allowed.
+
+
+18. WHAT "HYBRID" MEANS IN THE FINAL SYSTEM
+
+The final recommender is still a hybrid system because it combines collaborative and content-based recommendation methods.
+
+However, it is an availability-aware/routing hybrid rather than a simple score-fusion hybrid.
+
+The experiments showed that automatically mixing content into every ranking can reduce measured relevance.
+
+Therefore:
+
+- SVD is the primary recommendation method when sufficient collaborative information is available.
+- Content handles metadata preferences and hard constraints in the current controller.
+- Content provides fallback behavior when SVD does not have enough usable favorite movies.
+- Content provides access to new and cold items that SVD cannot represent.
+
+This allows each model to be used for the type of problem it handles best.
+
+
+19. IMPORTANT INTERPRETATION OF THE RESULTS
+
+The statement "SVD is better" should be interpreted carefully.
+
+The experiments support this more precise statement:
+
+"SVD performed substantially better than the content model for predicting held-out positive MovieLens interactions under the evaluated cold-start protocol."
+
+This does not prove that SVD is universally better for every recommendation task.
+
+The benchmark itself is based on MovieLens user ratings, which naturally provides a strong setting for collaborative filtering.
+
+It also cannot fully evaluate the value of recommending truly new movies that do not exist in MovieLens.
+
+This is why the final architecture keeps both models.
+
+
+20. CURRENT LIMITATIONS
+
+Several limitations remain:
+
+1. The cold-start SVD user profile is created by averaging favorite movie latent vectors. This is a heuristic and is not identical to a learned historical user factor.
+
+2. The evaluation uses random favorite/hidden splits rather than a fully time-aware setup.
+
+3. The evaluation population is restricted to users with enough mapped positive movies.
+
+4. Some TMDB movies cannot be mapped to MovieLens.
+
+5. New movies have little or no collaborative signal.
+
+6. Movie title matching can be ambiguous when multiple movies have the same title.
+
+7. The SVD model currently trains when the application starts. Later, trained artifacts should be saved and loaded instead.
+
+8. Model-selection experiments and final unbiased evaluation should ideally use separate validation and test sets.
+
+9. Content component attribution should use deterministic tie-breaking in future rigorous experiments.
+
+10. The current controller routes hard metadata constraints to content. A future version could sometimes filter SVD candidates by metadata while preserving collaborative ranking when enough eligible SVD candidates exist.
+
+
+21. CURRENT STATUS
+
+The recommendation core can now be treated as Version 1 complete.
+
+Completed components:
+
+- TMDB catalog construction
+- Semantic movie embeddings
+- Content-based recommender
+- Actor/director/genre inference
+- MovieLens collaborative filtering
+- SVD factor selection
+- Cold-start SVD recommendation
+- TMDB/MovieLens mapping
+- Content evaluation
+- SVD evaluation
+- Hybrid fusion experiments
+- Hybrid weight experiments
+- Hybrid V3 experiment
+- Routing-based hybrid controller
+- Soft preferences
+- Hard requirements
+- Exclusions
+- Year constraints
+
+The next major stage is the conversational AI layer.
+
+The intended pipeline is:
+
+User natural-language request
+        |
+        v
+LLM / request parser
+        |
+        v
+Structured preferences and constraints
+        |
+        v
+RecommendationEngine
+        |
+        +---- SVD
+        |
+        +---- Content
+        |
+        v
+Recommended movies
+        |
+        v
+Conversational response
+
+The LLM should understand the user's language and convert it into structured inputs. The actual recommendation ranking should remain the responsibility of the recommendation models and controller.
+
+END
