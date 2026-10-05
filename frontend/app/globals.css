@@ -1,0 +1,1947 @@
+@import "tailwindcss";
+
+
+/* =========================================================
+   COLORS
+========================================================= */
+
+:root {
+  --background: #09090b;
+  --surface: #111114;
+  --surface-light: #18181c;
+  --surface-hover: #202025;
+  --border: #29292f;
+  --text: #f5f5f7;
+  --muted: #9999a3;
+  --accent: #e63946;
+  --accent-hover: #f04b57;
+}
+
+
+* {
+  box-sizing: border-box;
+}
+
+
+html {
+  background: var(--background);
+}
+
+
+body {
+  margin: 0;
+
+  min-height: 100vh;
+
+  color: var(--text);
+
+  background:
+    radial-gradient(
+      circle at 50% -10%,
+      rgba(230, 57, 70, 0.12),
+      transparent 35%
+    ),
+    var(--background);
+
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+}
+
+
+button,
+input {
+  font: inherit;
+}
+
+
+/* =========================================================
+   PAGE
+========================================================= */
+
+.page {
+  width: min(
+    1180px,
+    calc(100% - 40px)
+  );
+
+  margin: 0 auto;
+
+  padding: 40px 0 80px;
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.hero {
+  max-width: 780px;
+
+  margin: 20px auto 55px;
+
+  text-align: center;
+}
+
+
+.brand {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 9px;
+
+  margin-bottom: 30px;
+
+  color: #d7d7dc;
+
+  font-size: 14px;
+
+  font-weight: 800;
+
+  letter-spacing: 3px;
+}
+
+
+.brandIcon {
+  color: var(--accent);
+}
+
+
+.hero h1 {
+  margin: 0;
+
+  font-size: clamp(
+    44px,
+    7vw,
+    76px
+  );
+
+  line-height: 0.98;
+
+  letter-spacing: -4px;
+
+  font-weight: 800;
+}
+
+
+.hero h1 span {
+  color: var(--accent);
+}
+
+
+.hero p {
+  max-width: 650px;
+
+  margin: 25px auto 0;
+
+  color: var(--muted);
+
+  font-size: 18px;
+
+  line-height: 1.7;
+}
+
+
+/* =========================================================
+   MAIN BOX
+========================================================= */
+
+.recommendationBox {
+  max-width: 900px;
+
+  margin: 0 auto;
+
+  padding: 32px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius: 22px;
+
+  background:
+    rgba(
+      17,
+      17,
+      20,
+      0.92
+    );
+
+  box-shadow:
+    0 30px 80px
+    rgba(0, 0, 0, 0.3);
+}
+
+
+.sectionHeading {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 15px;
+
+  margin-bottom: 22px;
+}
+
+
+.stepNumber {
+  width: 30px;
+  height: 30px;
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: var(--accent);
+
+  font-size: 14px;
+
+  font-weight: 800;
+}
+
+
+.sectionHeading h2 {
+  margin: 0 0 5px;
+
+  font-size: 21px;
+}
+
+
+.sectionHeading p {
+  margin: 0;
+
+  color: var(--muted);
+
+  font-size: 14px;
+
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   MOVIE SEARCH
+========================================================= */
+
+.searchWrapper {
+  position: relative;
+
+  z-index: 30;
+}
+
+
+.searchInputWrapper {
+  position: relative;
+}
+
+
+.searchIcon {
+  position: absolute;
+
+  left: 17px;
+  top: 50%;
+
+  transform:
+    translateY(-50%);
+
+  color: var(--muted);
+
+  font-size: 23px;
+}
+
+
+.movieSearch {
+  width: 100%;
+
+  height: 58px;
+
+  padding:
+    0
+    110px
+    0
+    50px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius: 13px;
+
+  outline: none;
+
+  background: #0c0c0f;
+
+  color: white;
+
+  transition: 0.2s;
+}
+
+
+.movieSearch:focus {
+  border-color: var(--accent);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(230, 57, 70, 0.12);
+}
+
+
+.movieSearch::placeholder {
+  color: #676771;
+}
+
+
+.searchingText {
+  position: absolute;
+
+  right: 16px;
+  top: 50%;
+
+  transform:
+    translateY(-50%);
+
+  color: var(--muted);
+
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   MOVIE DROPDOWN
+========================================================= */
+
+.searchDropdown {
+  position: absolute;
+
+  top: calc(100% + 8px);
+
+  left: 0;
+  right: 0;
+
+  z-index: 100;
+
+  max-height: 420px;
+
+  overflow-y: auto;
+
+  padding: 6px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius: 14px;
+
+  background: #111114;
+
+  box-shadow:
+    0 25px 60px
+    rgba(0, 0, 0, 0.65);
+}
+
+
+.searchResult {
+  width: 100%;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 13px;
+
+  padding: 8px;
+
+  border: none;
+
+  border-radius: 9px;
+
+  background: transparent;
+
+  color: white;
+
+  cursor: pointer;
+
+  text-align: left;
+}
+
+
+.searchResult:hover {
+  background:
+    var(--surface-hover);
+}
+
+
+.searchPoster {
+  width: 44px;
+  height: 65px;
+
+  flex-shrink: 0;
+
+  overflow: hidden;
+
+  border-radius: 6px;
+
+  background: #27272c;
+}
+
+
+.searchPoster img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+}
+
+
+.posterFallback {
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+}
+
+
+.searchMovieInfo {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 5px;
+}
+
+
+.searchMovieInfo strong {
+  font-size: 15px;
+}
+
+
+.searchMovieInfo span {
+  color: var(--muted);
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   SELECTED MOVIES
+========================================================= */
+
+.selectedSection {
+  margin-top: 24px;
+}
+
+
+.selectedHeader {
+  display: flex;
+
+  justify-content:
+    space-between;
+
+  align-items: center;
+
+  margin-bottom: 10px;
+
+  color: var(--muted);
+
+  font-size: 13px;
+}
+
+
+.clearButton {
+  border: none;
+
+  background: transparent;
+
+  color: #c6c6cc;
+
+  cursor: pointer;
+}
+
+
+.clearButton:hover {
+  color: white;
+}
+
+
+.selectedMovies {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 10px;
+}
+
+
+.selectedMovie {
+  position: relative;
+
+  width: 260px;
+
+  min-height: 72px;
+
+  display: flex;
+
+  align-items: center;
+
+  overflow: hidden;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius: 11px;
+
+  background:
+    var(--surface-light);
+}
+
+
+.selectedMovie img,
+.selectedFallback {
+  width: 48px;
+  height: 72px;
+
+  flex-shrink: 0;
+
+  object-fit: cover;
+}
+
+
+.selectedFallback {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+}
+
+
+.selectedMovieInfo {
+  min-width: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 5px;
+
+  padding: 10px;
+}
+
+
+.selectedMovieInfo strong {
+  padding-right: 20px;
+
+  overflow: hidden;
+
+  white-space: nowrap;
+
+  text-overflow: ellipsis;
+
+  font-size: 13px;
+}
+
+
+.selectedMovieInfo span {
+  color: var(--muted);
+
+  font-size: 12px;
+}
+
+
+.removeMovie {
+  position: absolute;
+
+  right: 8px;
+  top: 7px;
+
+  width: 22px;
+  height: 22px;
+
+  border: none;
+
+  border-radius: 50%;
+
+  background: #29292e;
+
+  color: #aaaab2;
+
+  cursor: pointer;
+}
+
+
+.removeMovie:hover {
+  background: var(--accent);
+
+  color: white;
+}
+
+
+/* =========================================================
+   PREFERENCES
+========================================================= */
+
+.preferencesSection {
+  margin-top: 36px;
+
+  padding-top: 30px;
+
+  border-top:
+    1px solid
+    var(--border);
+}
+
+
+.preferenceGrid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap: 15px;
+
+  align-items: start;
+}
+
+
+.inputGroup {
+  min-width: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 8px;
+}
+
+
+.inputGroup > label {
+  color: #c6c6cc;
+
+  font-size: 13px;
+
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   MULTI SELECT
+========================================================= */
+
+.selectorWrapper {
+  position: relative;
+
+  min-width: 0;
+}
+
+
+.multiSelectInput {
+  width: 100%;
+
+  min-height: 48px;
+
+  display: flex;
+
+  align-items: center;
+
+  flex-wrap: wrap;
+
+  gap: 6px;
+
+  padding: 6px 9px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius: 10px;
+
+  background: #0c0c0f;
+
+  cursor: text;
+
+  transition: 0.2s;
+}
+
+
+.multiSelectInput:focus-within {
+  border-color: var(--accent);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(230, 57, 70, 0.08);
+}
+
+
+.multiSelectInput input {
+  min-width: 80px;
+
+  flex: 1;
+
+  height: 32px;
+
+  padding: 0 4px;
+
+  border: none;
+
+  outline: none;
+
+  background: transparent;
+
+  color: white;
+
+  font-size: 13px;
+}
+
+
+.multiSelectInput input::placeholder {
+  color: #65656e;
+}
+
+
+/* =========================================================
+   CHIPS
+========================================================= */
+
+.selectionChip {
+  max-width: 100%;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 6px;
+
+  padding:
+    6px
+    7px
+    6px
+    9px;
+
+  border:
+    1px solid
+    rgba(230, 57, 70, 0.28);
+
+  border-radius: 7px;
+
+  background:
+    rgba(230, 57, 70, 0.12);
+
+  color: #f3d4d6;
+
+  font-size: 11px;
+
+  white-space: nowrap;
+}
+
+
+.selectionChip button {
+  width: 17px;
+  height: 17px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 0;
+
+  border: none;
+
+  border-radius: 50%;
+
+  background: transparent;
+
+  color: #d6aeb1;
+
+  cursor: pointer;
+}
+
+
+.selectionChip button:hover {
+  background: var(--accent);
+
+  color: white;
+}
+
+
+/* =========================================================
+   PREFERENCE DROPDOWN
+========================================================= */
+
+.preferenceDropdown {
+  position: absolute;
+
+  top: calc(100% + 7px);
+
+  left: 0;
+  right: 0;
+
+  z-index: 200;
+
+  max-height: 270px;
+
+  overflow-y: auto;
+
+  padding: 5px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius: 11px;
+
+  background: #111114;
+
+  box-shadow:
+    0 20px 45px
+    rgba(0, 0, 0, 0.6);
+}
+
+
+.preferenceDropdown button {
+  width: 100%;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 9px;
+
+  padding: 10px 11px;
+
+  border: none;
+
+  border-radius: 7px;
+
+  background: transparent;
+
+  color: #e9e9ed;
+
+  cursor: pointer;
+
+  text-align: left;
+
+  font-size: 13px;
+}
+
+
+.preferenceDropdown button:hover {
+  background:
+    var(--surface-hover);
+}
+
+
+.personIcon,
+.genreIcon {
+  width: 18px;
+
+  flex-shrink: 0;
+
+  color: var(--accent);
+
+  text-align: center;
+
+  font-size: 10px;
+}
+
+
+.smallLoader {
+  padding-right: 4px;
+
+  color: var(--muted);
+
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   ADVANCED FILTERS
+========================================================= */
+
+.advancedSection {
+  margin-top: 30px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius: 14px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.012
+    );
+}
+
+
+.advancedToggle {
+  width: 100%;
+
+  min-height: 72px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content:
+    space-between;
+
+  gap: 20px;
+
+  padding: 15px 18px;
+
+  border: none;
+
+  border-radius: 14px;
+
+  background: transparent;
+
+  color: white;
+
+  cursor: pointer;
+
+  text-align: left;
+}
+
+
+.advancedToggle:hover {
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.025
+    );
+}
+
+
+.advancedToggle > div:first-child {
+  display: flex;
+
+  align-items: center;
+
+  gap: 13px;
+}
+
+
+.filterIcon {
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 10px;
+
+  background:
+    rgba(
+      230,
+      57,
+      70,
+      0.12
+    );
+
+  color: var(--accent);
+
+  font-size: 18px;
+}
+
+
+.advancedToggle strong {
+  display: block;
+
+  margin-bottom: 4px;
+
+  font-size: 14px;
+}
+
+
+.advancedToggle small {
+  display: block;
+
+  color: var(--muted);
+
+  font-size: 12px;
+}
+
+
+.advancedToggleRight {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+}
+
+
+.filterCount {
+  min-width: 24px;
+  height: 24px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 0 7px;
+
+  border-radius: 20px;
+
+  background: var(--accent);
+
+  color: white;
+
+  font-size: 11px;
+
+  font-weight: 800;
+}
+
+
+.chevron {
+  color: var(--muted);
+
+  font-size: 10px;
+
+  transition:
+    transform 0.2s;
+}
+
+
+.chevron.open {
+  transform:
+    rotate(180deg);
+}
+
+
+/* =========================================================
+   ADVANCED CONTENT
+========================================================= */
+
+.advancedContent {
+  padding:
+    5px
+    18px
+    20px;
+
+  border-top:
+    1px solid
+    var(--border);
+}
+
+
+.filterBlock {
+  padding: 22px 0;
+
+  border-bottom:
+    1px solid
+    var(--border);
+}
+
+
+.filterBlock:last-of-type {
+  border-bottom: none;
+}
+
+
+.filterBlockHeading {
+  margin-bottom: 16px;
+}
+
+
+.filterBlockHeading h3 {
+  margin:
+    0
+    0
+    5px;
+
+  font-size: 14px;
+}
+
+
+.filterBlockHeading p {
+  margin: 0;
+
+  color: var(--muted);
+
+  font-size: 12px;
+
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   YEAR FILTER
+========================================================= */
+
+.yearRange {
+  max-width: 480px;
+
+  display: grid;
+
+  grid-template-columns:
+    1fr
+    auto
+    1fr;
+
+  align-items: end;
+
+  gap: 12px;
+}
+
+
+.yearInput {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+
+.yearInput label {
+  color: #c6c6cc;
+
+  font-size: 12px;
+
+  font-weight: 600;
+}
+
+
+.yearInput input {
+  width: 100%;
+
+  height: 46px;
+
+  padding: 0 13px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius: 9px;
+
+  outline: none;
+
+  background: #0c0c0f;
+
+  color: white;
+}
+
+
+.yearInput input:focus {
+  border-color:
+    var(--accent);
+}
+
+
+.yearInput input::placeholder {
+  color: #5e5e67;
+}
+
+
+.yearArrow {
+  height: 46px;
+
+  display: flex;
+
+  align-items: center;
+
+  color: var(--muted);
+}
+
+
+/* =========================================================
+   EXCLUSION
+========================================================= */
+
+.exclusionBlock
+.selectionChip {
+  border-color:
+    rgba(
+      255,
+      125,
+      125,
+      0.25
+    );
+
+  background:
+    rgba(
+      255,
+      80,
+      80,
+      0.08
+    );
+}
+
+
+/* =========================================================
+   CLEAR FILTERS
+========================================================= */
+
+.clearFiltersRow {
+  display: flex;
+
+  align-items: center;
+
+  justify-content:
+    space-between;
+
+  gap: 20px;
+
+  padding-top: 18px;
+
+  color: var(--muted);
+
+  font-size: 12px;
+}
+
+
+.clearFiltersRow button {
+  padding:
+    8px
+    12px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius: 8px;
+
+  background:
+    #18181c;
+
+  color: #d5d5da;
+
+  cursor: pointer;
+}
+
+
+.clearFiltersRow button:hover {
+  border-color:
+    #44444c;
+
+  color: white;
+}
+
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+.errorMessage {
+  margin-top: 20px;
+
+  padding: 13px 15px;
+
+  border:
+    1px solid
+    rgba(
+      230,
+      57,
+      70,
+      0.4
+    );
+
+  border-radius: 10px;
+
+  background:
+    rgba(
+      230,
+      57,
+      70,
+      0.08
+    );
+
+  color: #ff8c94;
+
+  font-size: 14px;
+}
+
+
+/* =========================================================
+   FIND BUTTON
+========================================================= */
+
+.findButton {
+  width: 100%;
+
+  height: 54px;
+
+  margin-top: 25px;
+
+  border: none;
+
+  border-radius: 11px;
+
+  background:
+    var(--accent);
+
+  color: white;
+
+  font-size: 15px;
+
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.15s,
+    background 0.15s;
+}
+
+
+.findButton:hover:not(:disabled) {
+  transform:
+    translateY(-1px);
+
+  background:
+    var(--accent-hover);
+}
+
+
+.findButton:disabled {
+  opacity: 0.6;
+
+  cursor: wait;
+}
+
+
+/* =========================================================
+   RESULTS
+========================================================= */
+
+.resultsSection {
+  margin-top: 80px;
+}
+
+
+.resultsHeading {
+  display: flex;
+
+  align-items: flex-end;
+
+  justify-content:
+    space-between;
+
+  margin-bottom: 25px;
+}
+
+
+.eyebrow {
+  color: var(--accent);
+
+  font-size: 11px;
+
+  font-weight: 800;
+
+  letter-spacing: 2px;
+}
+
+
+.resultsHeading h2 {
+  margin: 6px 0 0;
+
+  font-size: 32px;
+
+  letter-spacing: -1px;
+}
+
+
+.resultCount {
+  color: var(--muted);
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   MOVIE GRID
+========================================================= */
+
+.movieGrid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(5, 1fr);
+
+  gap: 18px;
+}
+
+
+.movieCard {
+  min-width: 0;
+
+  overflow: hidden;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius: 15px;
+
+  background:
+    var(--surface);
+
+  transition:
+    transform 0.2s,
+    border-color 0.2s;
+}
+
+
+.movieCard:hover {
+  transform:
+    translateY(-5px);
+
+  border-color: #45454d;
+}
+
+
+.posterContainer {
+  position: relative;
+
+  aspect-ratio: 2 / 3;
+
+  background: #18181c;
+}
+
+
+.posterContainer img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+}
+
+
+.cardPosterFallback {
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  font-size: 40px;
+}
+
+
+.rankBadge,
+.ratingBadge {
+  position: absolute;
+
+  top: 10px;
+
+  padding: 5px 8px;
+
+  border-radius: 7px;
+
+  background:
+    rgba(
+      0,
+      0,
+      0,
+      0.75
+    );
+
+  backdrop-filter:
+    blur(8px);
+
+  font-size: 11px;
+
+  font-weight: 800;
+}
+
+
+.rankBadge {
+  left: 10px;
+}
+
+
+.ratingBadge {
+  right: 10px;
+
+  color: #ffd166;
+}
+
+
+.movieContent {
+  padding: 14px;
+}
+
+
+.movieContent h3 {
+  margin: 0 0 8px;
+
+  font-size: 16px;
+
+  line-height: 1.3;
+}
+
+
+.movieMeta {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 4px;
+
+  color: var(--muted);
+
+  font-size: 11px;
+
+  line-height: 1.4;
+}
+
+
+.overview {
+  margin: 12px 0;
+
+  overflow: hidden;
+
+  display: -webkit-box;
+
+  -webkit-line-clamp: 4;
+
+  -webkit-box-orient:
+    vertical;
+
+  color: #b4b4bc;
+
+  font-size: 12px;
+
+  line-height: 1.55;
+}
+
+
+/* =========================================================
+   DETAILS
+========================================================= */
+
+.technicalDetails {
+  margin-top: 12px;
+
+  padding-top: 10px;
+
+  border-top:
+    1px solid
+    var(--border);
+
+  color: var(--muted);
+
+  font-size: 11px;
+}
+
+
+.technicalDetails summary {
+  color: #d0d0d5;
+
+  cursor: pointer;
+}
+
+
+.technicalDetails div {
+  padding-top: 8px;
+}
+
+
+.technicalDetails p {
+  margin: 5px 0;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+footer {
+  margin-top: 80px;
+
+  color: #56565e;
+
+  text-align: center;
+
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1050px) {
+
+  .movieGrid {
+    grid-template-columns:
+      repeat(3, 1fr);
+  }
+
+}
+
+
+@media (max-width: 850px) {
+
+  .preferenceGrid {
+    grid-template-columns:
+      1fr;
+  }
+
+}
+
+
+@media (max-width: 750px) {
+
+  .page {
+    width:
+      min(
+        100% - 24px,
+        1180px
+      );
+
+    padding-top: 20px;
+  }
+
+
+  .hero {
+    margin-bottom: 35px;
+  }
+
+
+  .hero h1 {
+    letter-spacing: -2px;
+  }
+
+
+  .recommendationBox {
+    padding: 22px;
+  }
+
+
+  .movieGrid {
+    grid-template-columns:
+      repeat(2, 1fr);
+
+    gap: 12px;
+  }
+
+
+  .resultsHeading {
+    flex-direction: column;
+
+    align-items:
+      flex-start;
+
+    gap: 8px;
+  }
+
+}
+
+
+@media (max-width: 500px) {
+
+  .yearRange {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .yearArrow {
+    display: none;
+  }
+
+
+  .advancedToggle {
+    padding: 13px;
+  }
+
+
+  .advancedContent {
+    padding:
+      5px
+      13px
+      17px;
+  }
+
+
+  .selectedMovie {
+    width: 100%;
+  }
+
+}
+
+.watchSection {
+  margin-top: 22px;
+  padding: 20px;
+  border: 1px solid #2b2b32;
+  border-radius: 16px;
+  background: #131318;
+}
+
+.watchHeading {
+  margin-bottom: 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.providerRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 14px 0;
+  border-top: 1px solid #292930;
+}
+
+.providerLabel {
+  width: 70px;
+  flex-shrink: 0;
+  padding-top: 8px;
+
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+
+  color: #92929d;
+}
+
+.providerTextList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.providerPill {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 7px 11px;
+
+  border: 1px solid #34343c;
+  border-radius: 9px;
+
+  background: #202027;
+  color: #eeeeF2;
+
+  font-size: 12px;
+  line-height: 1;
+
+  white-space: nowrap;
+}
+
+.providerPill.more {
+  color: #aaaab4;
+  background: #19191f;
+}
+
+.watchLink {
+  display: inline-block;
+
+  margin-top: 16px;
+
+  color: #ef4444;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  text-decoration: none;
+}
+
+.watchLink:hover {
+  text-decoration: underline;
+}
+
+.noProviders {
+  padding: 12px 0;
+
+  color: #8f8f99;
+  font-size: 13px;
+}
+
+.justWatchCredit {
+  margin-top: 8px;
+
+  color: #71717c;
+
+  font-size: 10px;
+  font-style: italic;
+}
+
+/* =========================================
+   WHERE TO WATCH
+========================================= */
+
+.watchSection {
+  margin-top: 22px;
+  padding: 20px 18px;
+  border: 1px solid #2b2b32;
+  border-radius: 16px;
+  background: #131318;
+}
+
+.watchHeading {
+  margin-bottom: 18px;
+
+  font-size: 16px;
+  font-weight: 700;
+
+  color: #ffffff;
+}
+
+
+/* PROVIDER CATEGORY */
+
+.providerRow {
+  display: block;
+
+  padding: 14px 0;
+
+  border-top: 1px solid #292930;
+}
+
+.providerLabel {
+  display: block;
+
+  width: auto;
+
+  margin-bottom: 8px;
+  padding: 0;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  letter-spacing: 1.4px;
+
+  color: #9299b5;
+}
+
+
+/* PROVIDER NAMES */
+
+.providerTextList {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 6px;
+}
+
+.providerText {
+  font-size: 13px;
+  line-height: 1.5;
+
+  color: #f0f0f3;
+}
+
+.providerSeparator {
+  color: #666670;
+
+  font-size: 12px;
+}
+
+
+/* MORE */
+
+.providerMore {
+  margin-top: 7px;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  color: #9999a5;
+}
+
+
+/* VIEW ALL */
+
+.watchLink {
+  display: inline-block;
+
+  margin-top: 16px;
+
+  color: #ff5555;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  text-decoration: none;
+}
+
+.watchLink:hover {
+  color: #ff7777;
+}
+
+
+/* NO AVAILABILITY */
+
+.noProviders {
+  padding: 18px 0 4px;
+
+  border-top: 1px solid #292930;
+
+  color: #92929d;
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+
+/* JUSTWATCH */
+
+.justWatchCredit {
+  margin-top: 18px;
+
+  color: #70707c;
+
+  font-size: 10px;
+  font-style: italic;
+
+  line-height: 1.5;
+}
+.providerNames {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #f0f0f3;
+}
+
+.providerMore {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #858593;
+}
+/* Neutralize old provider/logo rules if they still exist earlier in globals.css. */
+.watchSection .providerGroup,
+.watchSection .providerList,
+.watchSection .provider,
+.watchSection .providerNames,
+.watchSection .providerPill,
+.watchSection img {
+  all: unset;
+}

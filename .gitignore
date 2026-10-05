@@ -22,3 +22,7 @@ data/*_temp.csv
 
 # MovieLens dataset
 data/ml-32m/
+
+# Generated SVD model
+data/svd_movie_factors.npy
+data/svd_movie_index.csv

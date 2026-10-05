@@ -16,7 +16,12 @@ MAPPING_FILE = "data/movie_mapping.csv"
 MIN_MOVIE_RATINGS = 50
 N_FACTORS = 50
 RANDOM_STATE = 42
+# ==========================================================
+# SAVED MODEL FILES
+# ==========================================================
 
+SVD_MOVIE_FACTORS_FILE = "data/svd_movie_factors.npy"
+SVD_MOVIE_INDEX_FILE = "data/svd_movie_index.csv"
 
 # ==========================================================
 # SVD RECOMMENDER CLASS
@@ -295,7 +300,146 @@ class SVDRecommender:
             "\nSVD recommender ready."
         )
 
+    # ======================================================
+    # SAVE TRAINED MODEL
+    # ======================================================
 
+    def save_model(self):
+
+        if self.movie_factors is None:
+            raise ValueError(
+                "SVD model has not been trained yet."
+            )
+
+        print("\nSaving trained SVD model...")
+
+        # Save latent movie vectors
+        np.save(
+            SVD_MOVIE_FACTORS_FILE,
+            self.movie_factors
+        )
+
+        # Save relationship between matrix position
+        # and MovieLens movieId
+        movie_index = pd.DataFrame({
+
+            "movieId": [
+                self.index_to_movie[index]
+                for index in range(
+                    len(self.index_to_movie)
+                )
+            ],
+
+            "movie_index": range(
+                len(self.index_to_movie)
+            )
+        })
+
+        movie_index.to_csv(
+            SVD_MOVIE_INDEX_FILE,
+            index=False
+        )
+
+        print(
+            "Movie factors saved:",
+            self.movie_factors.shape
+        )
+
+        print(
+            "Movie index saved:",
+            len(movie_index)
+        )
+
+        print(
+            "\nSVD model saved successfully."
+        )
+
+    # ======================================================
+    # LOAD TRAINED MODEL
+    # ======================================================
+
+    def load_model(self):
+
+        print("\nLoading saved SVD model...")
+
+        # --------------------------------------------------
+        # Load the small metadata files needed for
+        # recommendations.
+        # --------------------------------------------------
+
+        self.movies = pd.read_csv(
+            MOVIES_FILE
+        )
+
+        self.mapping = pd.read_csv(
+            MAPPING_FILE
+        )
+
+
+        # --------------------------------------------------
+        # Load latent movie vectors
+        # --------------------------------------------------
+
+        self.movie_factors = np.load(
+            SVD_MOVIE_FACTORS_FILE
+        )
+
+
+        # --------------------------------------------------
+        # Rebuild movie indexes
+        # --------------------------------------------------
+
+        movie_index = pd.read_csv(
+            SVD_MOVIE_INDEX_FILE
+        )
+
+        self.movie_to_index = {
+
+            int(row.movieId):
+                int(row.movie_index)
+
+            for row
+            in movie_index.itertuples()
+        }
+
+        self.index_to_movie = {
+
+            int(row.movie_index):
+                int(row.movieId)
+
+            for row
+            in movie_index.itertuples()
+        }
+
+
+        # --------------------------------------------------
+        # Validation
+        # --------------------------------------------------
+
+        if (
+            len(self.movie_to_index)
+            != len(self.movie_factors)
+        ):
+
+            raise ValueError(
+                "Saved SVD movie index does not match "
+                "saved movie factors."
+            )
+
+
+        print(
+            "Movie factors:",
+            self.movie_factors.shape
+        )
+
+        print(
+            "Movies in collaborative model:",
+            len(self.movie_to_index)
+        )
+
+        print(
+            "\nSaved SVD model loaded."
+        )
     # ======================================================
     # EXISTING MOVIELENS USER
     # ======================================================

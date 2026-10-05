@@ -11,8 +11,34 @@ from svd_recommender import SVDRecommender
 DEFAULT_TOP_N = 10
 
 # Minimum number of favorite movies that must be usable
-# by SVD before we trust SVD as the primary recommender.
+# by SVD before SVD becomes the primary recommendation model.
 MIN_SVD_FAVORITES = 2
+
+SVD_CANDIDATE_POOL = 500
+
+SOFT_CONTENT_BONUS = 0.10
+
+
+# ==========================================================
+# COLD-ITEM CONTENT CANDIDATES
+# ==========================================================
+#
+# Movies unavailable to SVD (for example new 2025/2026
+# releases) can still enter through the content model.
+#
+# We only consider a small number of the strongest content
+# candidates. They are not treated as if SVD disliked them;
+# they simply have no collaborative score.
+
+CONTENT_COLD_CANDIDATE_POOL = 50
+
+# A cold movie must be among the strongest content matches
+# relative to the current request before it can compete.
+#
+# We use rank rather than pretending that content_score and
+# svd_score are directly comparable.
+
+COLD_CONTENT_MAX_RANK = 10
 
 
 # ==========================================================
@@ -36,7 +62,7 @@ class RecommendationEngine:
         # --------------------------------------------------
 
         self.svd = SVDRecommender()
-        self.svd.fit()
+        self.svd.load_model()
 
         print("\nRecommendation engine ready.")
 
@@ -52,39 +78,18 @@ class RecommendationEngine:
 
         tmdb_ids = []
 
-        movie_titles = (
-            self.content.movies["title"]
-            .tolist()
-        )
-
-        for movie_name in favorite_movies:
-
-            match = self.content.find_best_match(
-                movie_name,
-                movie_titles,
-                "Movie"
-            )
-
-            if match is None:
+        for movie in favorite_movies:
+            if not isinstance(movie, dict):
                 continue
 
-            movie_match = (
-                self.content.movies[
-                    self.content.movies[
-                        "title"
-                    ].str.lower()
-                    == match.lower()
-                ]
-            )
-
-            if movie_match.empty:
+            tmdb_id = movie.get("tmdb_id")
+            if tmdb_id is None:
                 continue
 
-            tmdb_id = int(
-                movie_match.iloc[0]["tmdb_id"]
-            )
-
-            tmdb_ids.append(tmdb_id)
+            try:
+                tmdb_ids.append(int(tmdb_id))
+            except (TypeError, ValueError):
+                continue
 
         return tmdb_ids
 
@@ -96,6 +101,7 @@ class RecommendationEngine:
     def get_content_scores(
         self,
         favorite_movies,
+        favorite_tmdb_ids,
         favorite_genres,
         favorite_actors,
         favorite_directors
@@ -104,6 +110,8 @@ class RecommendationEngine:
         return self.content.get_scores(
 
             favorite_movies=favorite_movies,
+
+            favorite_tmdb_ids=favorite_tmdb_ids,
 
             favorite_genres=favorite_genres,
 
@@ -145,9 +153,6 @@ class RecommendationEngine:
             .astype(int)
         )
 
-        # Only MovieLens movies surviving the SVD
-        # minimum-rating filter are actually usable.
-
         if hasattr(
             self.svd,
             "movie_to_index"
@@ -170,16 +175,13 @@ class RecommendationEngine:
         for tmdb_id in favorite_tmdb_ids:
 
             if tmdb_id in available_tmdb_ids:
-
-                usable.append(
-                    tmdb_id
-                )
+                usable.append(tmdb_id)
 
         return usable
 
 
     # ======================================================
-    # ADD TMDB METADATA TO CONTENT RESULTS
+    # ADD TMDB METADATA
     # ======================================================
 
     def add_metadata(
@@ -223,9 +225,6 @@ class RecommendationEngine:
             .astype(int)
         )
 
-        # Only add metadata columns that are not
-        # already present in the score dataframe.
-
         columns_to_add = [
             column
             for column in [
@@ -256,7 +255,7 @@ class RecommendationEngine:
 
 
     # ======================================================
-    # HELPER — SPLIT METADATA FIELD
+    # METADATA HELPERS
     # ======================================================
 
     def get_field_values(
@@ -273,10 +272,6 @@ class RecommendationEngine:
             if item.strip()
         }
 
-
-    # ======================================================
-    # HELPER — CONTAINS ANY
-    # ======================================================
 
     def field_contains_any(
         self,
@@ -303,10 +298,6 @@ class RecommendationEngine:
             )
         )
 
-
-    # ======================================================
-    # HELPER — CONTAINS ALL
-    # ======================================================
 
     def field_contains_all(
         self,
@@ -354,33 +345,17 @@ class RecommendationEngine:
 
         result = dataframe.copy()
 
-        required_genres = (
-            required_genres or []
-        )
+        required_genres = required_genres or []
+        required_actors = required_actors or []
+        required_directors = required_directors or []
 
-        required_actors = (
-            required_actors or []
-        )
-
-        required_directors = (
-            required_directors or []
-        )
-
-        exclude_genres = (
-            exclude_genres or []
-        )
-
-        exclude_actors = (
-            exclude_actors or []
-        )
-
-        exclude_directors = (
-            exclude_directors or []
-        )
+        exclude_genres = exclude_genres or []
+        exclude_actors = exclude_actors or []
+        exclude_directors = exclude_directors or []
 
 
         # --------------------------------------------------
-        # YEAR FILTERS
+        # YEAR
         # --------------------------------------------------
 
         if min_year is not None:
@@ -545,14 +520,13 @@ class RecommendationEngine:
 
 
     # ======================================================
-    # SVD RECOMMENDATIONS
+    # GET SVD CANDIDATES
     # ======================================================
 
-    def recommend_svd(
+    def get_svd_candidates(
         self,
         favorite_tmdb_ids,
-        content_scores,
-        top_n
+        content_scores
     ):
 
         svd_results = (
@@ -620,7 +594,7 @@ class RecommendationEngine:
 
 
         # --------------------------------------------------
-        # ADD CONTENT SCORE FOR INSPECTION
+        # ADD CONTENT SCORE
         # --------------------------------------------------
 
         if not content_scores.empty:
@@ -662,22 +636,518 @@ class RecommendationEngine:
 
             svd_results[
                 "content_score"
-            ] = pd.NA
+            ] = 0.0
 
 
         svd_results[
-            "recommendation_source"
-        ] = "svd"
+            "content_score"
+        ] = (
+
+            pd.to_numeric(
+                svd_results["content_score"],
+                errors="coerce"
+            )
+            .fillna(0.0)
+        )
 
 
-        return (
+        # --------------------------------------------------
+        # KEEP STRONGEST SVD CANDIDATES
+        # --------------------------------------------------
+
+        svd_results = (
             svd_results
             .sort_values(
                 "svd_score",
                 ascending=False
             )
-            .head(top_n)
+            .head(SVD_CANDIDATE_POOL)
             .copy()
+        )
+
+        return svd_results
+
+
+    # ======================================================
+    # SOFT PREFERENCE RERANKING
+    # ======================================================
+
+    def rerank_svd_with_soft_preferences(
+        self,
+        svd_results,
+        has_soft_preferences
+    ):
+
+        if svd_results.empty:
+            return svd_results
+
+        result = svd_results.copy()
+
+        # --------------------------------------------------
+        # NO EXPLICIT SOFT PREFERENCES
+        #
+        # Keep pure SVD ordering.
+        # --------------------------------------------------
+
+        if not has_soft_preferences:
+
+            result[
+                "final_score"
+            ] = result["svd_score"]
+
+            return result
+
+
+        # --------------------------------------------------
+        # SOFT PREFERENCE BONUS
+        #
+        # SVD remains the main signal.
+        # Content only gives a small bonus.
+        # --------------------------------------------------
+
+        result[
+            "final_score"
+        ] = (
+
+            result["svd_score"]
+
+            +
+
+            (
+                SOFT_CONTENT_BONUS
+                *
+                result["content_score"]
+            )
+        )
+
+        return result
+
+
+    # ======================================================
+    # ADD STRONG COLD CONTENT CANDIDATES
+    # ======================================================
+
+    def add_cold_content_candidates(
+        self,
+        svd_results,
+        content_scores,
+        has_soft_preferences
+    ):
+
+        # --------------------------------------------------
+        # Only use this lane when the user supplied an
+        # explicit soft preference.
+        #
+        # Without an explicit preference, SVD remains pure.
+        # --------------------------------------------------
+
+        if not has_soft_preferences:
+            return svd_results
+
+        if content_scores.empty:
+            return svd_results
+
+
+        # --------------------------------------------------
+        # TAKE STRONGEST CONTENT CANDIDATES
+        # --------------------------------------------------
+
+        content_candidates = (
+            content_scores
+            .sort_values(
+                "content_score",
+                ascending=False
+            )
+            .head(CONTENT_COLD_CANDIDATE_POOL)
+            .copy()
+        )
+
+        content_candidates[
+            "content_rank"
+        ] = range(
+            1,
+            len(content_candidates) + 1
+        )
+
+
+        # --------------------------------------------------
+        # KEEP ONLY VERY STRONG CONTENT RESULTS
+        # --------------------------------------------------
+
+        content_candidates = (
+            content_candidates[
+                content_candidates["content_rank"]
+                <= COLD_CONTENT_MAX_RANK
+            ]
+            .copy()
+        )
+
+        if content_candidates.empty:
+            return svd_results
+
+
+        # --------------------------------------------------
+        # REMOVE MOVIES ALREADY AVAILABLE THROUGH SVD
+        #
+        # We only want genuinely SVD-unavailable movies in
+        # this extra lane.
+        # --------------------------------------------------
+
+        mapping = self.svd.mapping.copy()
+
+        mapping = (
+            mapping
+            .dropna(
+                subset=["tmdb_id"]
+            )
+            .copy()
+        )
+
+        mapping["tmdb_id"] = (
+            mapping["tmdb_id"]
+            .astype(int)
+        )
+
+        usable_movie_ids = set(
+            self.svd.movie_to_index.keys()
+        )
+
+        mapping = mapping[
+            mapping["movieId"]
+            .isin(usable_movie_ids)
+        ]
+
+        svd_available_tmdb_ids = set(
+            mapping["tmdb_id"]
+            .tolist()
+        )
+
+        content_candidates["tmdb_id"] = (
+            content_candidates["tmdb_id"]
+            .astype(int)
+        )
+
+        cold_candidates = (
+            content_candidates[
+                ~content_candidates["tmdb_id"]
+                .isin(
+                    svd_available_tmdb_ids
+                )
+            ]
+            .copy()
+        )
+
+        if cold_candidates.empty:
+            return svd_results
+
+
+        # --------------------------------------------------
+        # REMOVE ANY DUPLICATES ALREADY IN CURRENT RESULTS
+        # --------------------------------------------------
+
+        if not svd_results.empty:
+
+            existing_ids = set(
+                svd_results["tmdb_id"]
+                .astype(int)
+                .tolist()
+            )
+
+            cold_candidates = (
+                cold_candidates[
+                    ~cold_candidates["tmdb_id"]
+                    .isin(existing_ids)
+                ]
+                .copy()
+            )
+
+        if cold_candidates.empty:
+            return svd_results
+
+
+        # --------------------------------------------------
+        # COLD-ITEM COMPETITION SCORE
+        #
+        # IMPORTANT:
+        #
+        # Missing SVD score does NOT mean SVD score = 0.
+        #
+        # Instead, strong cold items enter according to
+        # their CONTENT RANK.
+        #
+        # #1 content candidate receives a score slightly
+        # above the current 10th recommendation.
+        #
+        # Lower content ranks receive progressively smaller
+        # scores.
+        # --------------------------------------------------
+
+        if svd_results.empty:
+
+            return svd_results
+
+
+        ranked_svd = (
+            svd_results
+            .sort_values(
+                "final_score",
+                ascending=False
+            )
+            .copy()
+        )
+
+
+        # Score around the Top-N boundary.
+        #
+        # We use the 10th SVD result when available.
+        # This allows exceptional cold items to compete for
+        # Top 10 without automatically replacing the best
+        # collaborative recommendations.
+
+        boundary_position = min(
+            DEFAULT_TOP_N,
+            len(ranked_svd)
+        )
+
+        boundary_score = float(
+            ranked_svd
+            .iloc[
+                boundary_position - 1
+            ]["final_score"]
+        )
+
+
+        # --------------------------------------------------
+        # Rank-based cold score
+        # --------------------------------------------------
+
+        cold_candidates[
+            "cold_strength"
+        ] = (
+
+            (
+                COLD_CONTENT_MAX_RANK
+                - cold_candidates[
+                    "content_rank"
+                ]
+                + 1
+            )
+
+            / COLD_CONTENT_MAX_RANK
+        )
+
+
+        # Best cold candidate can rise modestly above the
+        # current Top-10 boundary.
+        #
+        # Lower-ranked content candidates fall below it.
+
+        cold_candidates[
+            "final_score"
+        ] = (
+
+            boundary_score
+
+            * (
+
+                0.90
+
+                + (
+
+                    0.15
+
+                    * cold_candidates[
+                        "cold_strength"
+                    ]
+                )
+
+            )
+
+        )
+
+
+        cold_candidates[
+            "svd_score"
+        ] = pd.NA
+
+
+        cold_candidates[
+            "recommendation_source"
+        ] = "content_cold"
+
+
+        # --------------------------------------------------
+        # COMBINE
+        # --------------------------------------------------
+
+        combined = pd.concat(
+            [
+                svd_results,
+                cold_candidates
+            ],
+            ignore_index=True,
+            sort=False
+        )
+
+
+        combined = (
+            combined
+            .sort_values(
+                "final_score",
+                ascending=False
+            )
+            .drop_duplicates(
+                subset=["tmdb_id"],
+                keep="first"
+            )
+            .reset_index(drop=True)
+        )
+
+
+        return combined
+
+    # ======================================================
+    # FILL MISSING RESULTS FROM CONTENT
+    # ======================================================
+
+    def fill_with_content(
+        self,
+        svd_results,
+        content_scores,
+        top_n
+    ):
+
+        # --------------------------------------------------
+        # START WITH AVAILABLE SVD RESULTS
+        # --------------------------------------------------
+
+        if svd_results.empty:
+
+            current = pd.DataFrame()
+
+        else:
+
+            current = (
+                svd_results
+                .copy()
+            )
+
+            if (
+                "recommendation_source"
+                not in current.columns
+            ):
+
+                current[
+                    "recommendation_source"
+                ] = "svd"
+
+            else:
+
+                current[
+                    "recommendation_source"
+                ] = (
+                    current[
+                        "recommendation_source"
+                    ]
+                    .fillna("svd")
+                )
+
+
+        # --------------------------------------------------
+        # ENOUGH RESULTS ALREADY
+        # --------------------------------------------------
+
+        if len(current) >= top_n:
+
+            return (
+                current
+                .head(top_n)
+                .copy()
+            )
+
+
+        # --------------------------------------------------
+        # NUMBER OF RESULTS STILL NEEDED
+        # --------------------------------------------------
+
+        needed = (
+            top_n
+            - len(current)
+        )
+
+
+        if content_scores.empty:
+
+            return (
+                current
+                .head(top_n)
+                .copy()
+            )
+
+
+        # --------------------------------------------------
+        # EXCLUDE MOVIES ALREADY RETURNED
+        # --------------------------------------------------
+
+        content_candidates = (
+            content_scores
+            .copy()
+        )
+
+        if not current.empty:
+
+            used_tmdb_ids = set(
+                current["tmdb_id"]
+                .astype(int)
+                .tolist()
+            )
+
+            content_candidates = (
+                content_candidates[
+                    ~content_candidates[
+                        "tmdb_id"
+                    ]
+                    .astype(int)
+                    .isin(used_tmdb_ids)
+                ]
+            )
+
+
+        # --------------------------------------------------
+        # GET BEST CONTENT FALLBACKS
+        # --------------------------------------------------
+
+        content_candidates = (
+            content_candidates
+            .sort_values(
+                "content_score",
+                ascending=False
+            )
+            .head(needed)
+            .copy()
+        )
+
+        content_candidates[
+            "recommendation_source"
+        ] = "content_fallback"
+
+
+        # --------------------------------------------------
+        # COMBINE
+        # --------------------------------------------------
+
+        if current.empty:
+
+            return content_candidates
+
+
+        return pd.concat(
+            [
+                current,
+                content_candidates
+            ],
+            ignore_index=True,
+            sort=False
         )
 
 
@@ -725,49 +1195,30 @@ class RecommendationEngine:
     ):
 
 
-        # --------------------------------------------------
+        # ==================================================
         # NORMALIZE INPUTS
-        # --------------------------------------------------
+        # ==================================================
 
-        favorite_movies = (
-            favorite_movies or []
-        )
+        favorite_movies = favorite_movies or []
 
-        favorite_genres = (
-            favorite_genres or []
-        )
+        favorite_movie_titles = [
+            movie["title"]
+            for movie in favorite_movies
+            if isinstance(movie, dict)
+            and movie.get("title")
+        ]
 
-        favorite_actors = (
-            favorite_actors or []
-        )
+        favorite_genres = favorite_genres or []
+        favorite_actors = favorite_actors or []
+        favorite_directors = favorite_directors or []
 
-        favorite_directors = (
-            favorite_directors or []
-        )
+        required_genres = required_genres or []
+        required_actors = required_actors or []
+        required_directors = required_directors or []
 
-        required_genres = (
-            required_genres or []
-        )
-
-        required_actors = (
-            required_actors or []
-        )
-
-        required_directors = (
-            required_directors or []
-        )
-
-        exclude_genres = (
-            exclude_genres or []
-        )
-
-        exclude_actors = (
-            exclude_actors or []
-        )
-
-        exclude_directors = (
-            exclude_directors or []
-        )
+        exclude_genres = exclude_genres or []
+        exclude_actors = exclude_actors or []
+        exclude_directors = exclude_directors or []
 
 
         # ==================================================
@@ -838,8 +1289,14 @@ class RecommendationEngine:
 
 
         # ==================================================
-        # 1. CALCULATE CONTENT SCORES
+        # 1. CONTENT SCORES
         # ==================================================
+
+        favorite_tmdb_ids = (
+            self.get_favorite_tmdb_ids(
+                favorite_movies
+            )
+        )
 
         print(
             "\nCalculating content scores..."
@@ -848,7 +1305,9 @@ class RecommendationEngine:
         content_scores = (
             self.get_content_scores(
 
-                favorite_movies,
+                favorite_movie_titles,
+
+                favorite_tmdb_ids,
 
                 favorite_genres,
 
@@ -860,12 +1319,8 @@ class RecommendationEngine:
 
 
         # ==================================================
-        # 2. ADD RAW TMDB METADATA
+        # 2. ADD METADATA
         # ==================================================
-
-        # get_scores() contains scores such as actor_score
-        # and director_score, but hard filtering needs the
-        # actual actor/director/genre metadata.
 
         content_scores = (
             self.add_metadata(
@@ -875,16 +1330,15 @@ class RecommendationEngine:
 
 
         # ==================================================
-        # 3. APPLY HARD CONSTRAINTS
+        # 3. APPLY HARD FILTERS TO CONTENT
         # ==================================================
 
-        content_scores = (
+        filtered_content = (
             self.apply_filters(
 
                 content_scores,
 
                 min_year=min_year,
-
                 max_year=max_year,
 
                 required_genres=
@@ -909,14 +1363,8 @@ class RecommendationEngine:
 
 
         # ==================================================
-        # 4. FAVORITE TMDB IDS
+        # 4. PRINT FAVORITE TMDB IDS
         # ==================================================
-
-        favorite_tmdb_ids = (
-            self.get_favorite_tmdb_ids(
-                favorite_movies
-            )
-        )
 
         print(
             "\nFavorite TMDB IDs:",
@@ -939,6 +1387,14 @@ class RecommendationEngine:
             len(usable_svd_favorites),
             "/",
             len(favorite_tmdb_ids)
+        )
+
+
+        enough_svd_favorites = (
+
+            len(usable_svd_favorites)
+
+            >= MIN_SVD_FAVORITES
         )
 
 
@@ -976,103 +1432,180 @@ class RecommendationEngine:
         )
 
 
-        enough_svd_favorites = (
-
-            len(usable_svd_favorites)
-
-            >= MIN_SVD_FAVORITES
-        )
-
-
         # ==================================================
-        # 7. CHOOSE RECOMMENDATION ENGINE
+        # 7. SVD PRIMARY
         # ==================================================
 
+        if enough_svd_favorites:
 
-        # --------------------------------------------------
-        # HARD CONSTRAINT MODE
-        # --------------------------------------------------
-
-        if has_hard_constraints:
-
-            mode = (
-                "CONTENT — hard constraints"
+            print(
+                "\nUsing SVD as primary model..."
             )
 
-            recommendations = (
-                self.recommend_content(
-
-                    content_scores,
-
-                    top_n
-                )
-            )
-
-
-        # --------------------------------------------------
-        # SOFT PREFERENCE MODE
-        # --------------------------------------------------
-
-        elif has_soft_preferences:
-
-            mode = (
-                "CONTENT — soft preference"
-            )
-
-            recommendations = (
-                self.recommend_content(
-
-                    content_scores,
-
-                    top_n
-                )
-            )
-
-
-        # --------------------------------------------------
-        # SVD PRIMARY MODE
-        # --------------------------------------------------
-
-        elif enough_svd_favorites:
-
-            mode = (
-                "SVD — collaborative primary"
-            )
-
-            recommendations = (
-                self.recommend_svd(
+            svd_results = (
+                self.get_svd_candidates(
 
                     favorite_tmdb_ids,
 
-                    content_scores,
+                    content_scores
+                )
+            )
+
+
+            # ----------------------------------------------
+            # APPLY HARD FILTERS TO SVD CANDIDATES
+            # ----------------------------------------------
+
+            if has_hard_constraints:
+
+                svd_results = (
+                    self.apply_filters(
+
+                        svd_results,
+
+                        min_year=min_year,
+                        max_year=max_year,
+
+                        required_genres=
+                            required_genres,
+
+                        required_actors=
+                            required_actors,
+
+                        required_directors=
+                            required_directors,
+
+                        exclude_genres=
+                            exclude_genres,
+
+                        exclude_actors=
+                            exclude_actors,
+
+                        exclude_directors=
+                            exclude_directors
+                    )
+                )
+
+
+            # ----------------------------------------------
+            # SOFT PREFERENCE RERANK
+            # ----------------------------------------------
+
+            svd_results = (
+                self.rerank_svd_with_soft_preferences(
+
+                    svd_results,
+
+                    has_soft_preferences
+                )
+            )
+
+
+            # ----------------------------------------------
+            # SORT
+            # ----------------------------------------------
+
+            svd_results = (
+                svd_results
+                .sort_values(
+                    "final_score",
+                    ascending=False
+                )
+                .copy()
+            )
+
+            # ----------------------------------------------
+            # ADD STRONG SVD-UNAVAILABLE CONTENT CANDIDATES
+            # ----------------------------------------------
+
+            svd_results = (
+                self.add_cold_content_candidates(
+
+                    svd_results,
+
+                    filtered_content,
+
+                    has_soft_preferences
+                )
+            )
+
+            # ----------------------------------------------
+            # FILL WITH CONTENT IF SVD DOES NOT HAVE
+            # ENOUGH ELIGIBLE MOVIES
+            # ----------------------------------------------
+
+            recommendations = (
+                self.fill_with_content(
+
+                    svd_results,
+
+                    filtered_content,
 
                     top_n
                 )
             )
 
 
-        # --------------------------------------------------
-        # CONTENT FALLBACK
-        # --------------------------------------------------
+            if has_hard_constraints:
+
+                mode = (
+                    "SVD PRIMARY + HARD FILTERS"
+                )
+
+            elif has_soft_preferences:
+
+                mode = (
+                    "SVD PRIMARY + SOFT CONTENT RERANK"
+                )
+
+            else:
+
+                mode = (
+                    "SVD — collaborative primary"
+                )
+
+
+        # ==================================================
+        # 8. CONTENT FALLBACK
+        # ==================================================
 
         else:
 
-            mode = (
-                "CONTENT — SVD fallback"
+            print(
+                "\nNot enough usable SVD favorites."
             )
 
             recommendations = (
                 self.recommend_content(
 
-                    content_scores,
+                    filtered_content,
 
                     top_n
                 )
             )
 
 
+            if has_hard_constraints:
+
+                mode = (
+                    "CONTENT — hard constraints"
+                )
+
+            elif has_soft_preferences:
+
+                mode = (
+                    "CONTENT — soft preferences"
+                )
+
+            else:
+
+                mode = (
+                    "CONTENT — SVD fallback"
+                )
+
+
         # ==================================================
-        # 8. FINAL OUTPUT
+        # 9. FINAL OUTPUT
         # ==================================================
 
         print(
@@ -1093,6 +1626,7 @@ class RecommendationEngine:
 
         recommendations = (
             recommendations
+            .head(top_n)
             .reset_index(drop=True)
         )
 
@@ -1122,14 +1656,12 @@ if __name__ == "__main__":
 
 
     # ======================================================
-    # TEST 1 — NORMAL FAVORITES
-    #
-    # Expected:
-    # SVD collaborative primary
+    # TEST 1
+    # PURE SVD
     # ======================================================
 
     print(
-        "\n\nTEST 1 — NORMAL FAVORITES"
+        "\n\nTEST 1 — PURE SVD"
     )
 
     test1 = engine.recommend(
@@ -1151,30 +1683,40 @@ if __name__ == "__main__":
                     "recommendation_rank",
                     "title",
                     "release_year",
-                    "recommendation_source"
+                    "recommendation_source",
+                    "svd_score"
                 ]
             ].to_string(index=False)
         )
 
 
     # ======================================================
-    # TEST 2 — HARD ACTOR REQUIREMENT
-    #
-    # Every recommendation MUST contain Christian Bale.
+    # TEST 2
+    # SVD + SOFT PREFERENCES
     # ======================================================
 
     print(
-        "\n\nTEST 2 — REQUIRE CHRISTIAN BALE"
+        "\n\nTEST 2 — SVD + SOFT PREFERENCES"
     )
 
     test2 = engine.recommend(
 
         favorite_movies=[
-            "The Dark Knight"
+            "The Dark Knight",
+            "Interstellar",
+            "The Godfather"
         ],
 
-        required_actors=[
+        favorite_genres=[
+            "Science Fiction"
+        ],
+
+        favorite_actors=[
             "Christian Bale"
+        ],
+
+        favorite_directors=[
+            "Christopher Nolan"
         ],
 
         top_n=10
@@ -1188,31 +1730,34 @@ if __name__ == "__main__":
                     "recommendation_rank",
                     "title",
                     "release_year",
-                    "actors",
-                    "content_score"
+                    "svd_score",
+                    "content_score",
+                    "final_score",
+                    "recommendation_source"
                 ]
             ].to_string(index=False)
         )
 
 
     # ======================================================
-    # TEST 3 — HARD DIRECTOR REQUIREMENT
-    #
-    # Every recommendation MUST be directed by Nolan.
+    # TEST 3
+    # SVD + HARD GENRE
     # ======================================================
 
     print(
-        "\n\nTEST 3 — REQUIRE CHRISTOPHER NOLAN"
+        "\n\nTEST 3 — SVD + REQUIRED SCIENCE FICTION"
     )
 
     test3 = engine.recommend(
 
         favorite_movies=[
-            "Interstellar"
+            "The Dark Knight",
+            "Interstellar",
+            "The Godfather"
         ],
 
-        required_directors=[
-            "Christopher Nolan"
+        required_genres=[
+            "Science Fiction"
         ],
 
         top_n=10
@@ -1226,28 +1771,28 @@ if __name__ == "__main__":
                     "recommendation_rank",
                     "title",
                     "release_year",
-                    "director",
-                    "content_score"
+                    "genres",
+                    "recommendation_source"
                 ]
             ].to_string(index=False)
         )
 
 
     # ======================================================
-    # TEST 4 — EXCLUDE DIRECTOR
-    #
-    # Similar to Interstellar,
-    # but Christopher Nolan must NOT appear.
+    # TEST 4
+    # SVD + HARD DIRECTOR EXCLUSION
     # ======================================================
 
     print(
-        "\n\nTEST 4 — LIKE INTERSTELLAR BUT NOT NOLAN"
+        "\n\nTEST 4 — SVD + EXCLUDE NOLAN"
     )
 
     test4 = engine.recommend(
 
         favorite_movies=[
-            "Interstellar"
+            "The Dark Knight",
+            "Interstellar",
+            "The Godfather"
         ],
 
         exclude_directors=[
@@ -1266,22 +1811,19 @@ if __name__ == "__main__":
                     "title",
                     "release_year",
                     "director",
-                    "content_score"
+                    "recommendation_source"
                 ]
             ].to_string(index=False)
         )
 
 
     # ======================================================
-    # TEST 5 — MULTIPLE HARD CONSTRAINTS
-    #
-    # Must:
-    # 1. Be Science Fiction
-    # 2. Be from 2024 or later
+    # TEST 5
+    # CONTENT FALLBACK
     # ======================================================
 
     print(
-        "\n\nTEST 5 — RECENT SCIENCE FICTION"
+        "\n\nTEST 5 — CONTENT FALLBACK"
     )
 
     test5 = engine.recommend(
@@ -1308,46 +1850,7 @@ if __name__ == "__main__":
                     "title",
                     "release_year",
                     "genres",
-                    "content_score"
-                ]
-            ].to_string(index=False)
-        )
-
-
-    # ======================================================
-    # TEST 6 — SOFT ACTOR PREFERENCE
-    #
-    # Christian Bale is preferred,
-    # but NOT required.
-    # ======================================================
-
-    print(
-        "\n\nTEST 6 — SOFT CHRISTIAN BALE PREFERENCE"
-    )
-
-    test6 = engine.recommend(
-
-        favorite_movies=[
-            "The Dark Knight"
-        ],
-
-        favorite_actors=[
-            "Christian Bale"
-        ],
-
-        top_n=10
-    )
-
-    if not test6.empty:
-
-        print(
-            test6[
-                [
-                    "recommendation_rank",
-                    "title",
-                    "release_year",
-                    "actors",
-                    "content_score"
+                    "recommendation_source"
                 ]
             ].to_string(index=False)
         )

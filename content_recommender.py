@@ -15,6 +15,26 @@ GENRE_MATCH_THRESHOLD = 0.25
 
 
 # ==========================================================
+# INFERRED PREFERENCE STRENGTH
+# ==========================================================
+#
+# Explicit preferences are things the user directly asked for.
+# Example:
+#     Actor = Ryan Gosling
+#
+# Inferred preferences come automatically from favorite movies.
+# Example:
+#     Interstellar -> Matthew McConaughey
+#     Interstellar -> Christopher Nolan
+#
+# Inferred cast/crew should help, but should NOT be as strong
+# as something the user explicitly selected.
+
+INFERRED_ACTOR_STRENGTH = 0.20
+INFERRED_DIRECTOR_STRENGTH = 0.20
+
+
+# ==========================================================
 # CONTENT RECOMMENDER
 # ==========================================================
 
@@ -330,6 +350,7 @@ class ContentRecommender:
     def get_scores(
         self,
         favorite_movies=None,
+        favorite_tmdb_ids=None,
         favorite_genres=None,
         favorite_actors=None,
         favorite_directors=None,
@@ -342,6 +363,10 @@ class ContentRecommender:
 
         favorite_movies = (
             favorite_movies or []
+        )
+
+        favorite_tmdb_ids = (
+            favorite_tmdb_ids or []
         )
 
         favorite_genres = (
@@ -362,21 +387,25 @@ class ContentRecommender:
         # --------------------------------------------------
 
         (
-            favorite_movies,
+            validated_movie_titles,
             favorite_genres,
             favorite_actors,
             favorite_directors
 
         ) = self.validate_preferences(
 
-            favorite_movies,
+            [] if favorite_tmdb_ids else favorite_movies,
             favorite_genres,
             favorite_actors,
             favorite_directors
         )
 
+        if not favorite_tmdb_ids:
+            favorite_movies = validated_movie_titles
+
 
         if not any([
+            favorite_tmdb_ids,
             favorite_movies,
             favorite_genres,
             favorite_actors,
@@ -418,24 +447,33 @@ class ContentRecommender:
 
         favorite_movie_rows = []
 
-        for movie_name in favorite_movies:
+        if favorite_tmdb_ids:
+            favorite_tmdb_id_set = {
+                int(tmdb_id)
+                for tmdb_id in favorite_tmdb_ids
+            }
 
             matches = movies[
-                movies["title"].str.lower()
-                == movie_name.lower()
+                movies["tmdb_id"].isin(
+                    favorite_tmdb_id_set
+                )
             ]
 
-            if not matches.empty:
+            for index, movie_row in matches.iterrows():
+                favorite_movie_indices.append(index)
+                favorite_movie_rows.append(movie_row)
+        else:
+            # Backward-compatible title lookup for standalone use.
+            for movie_name in favorite_movies:
+                matches = movies[
+                    movies["title"].str.lower()
+                    == movie_name.lower()
+                ]
 
-                index = matches.index[0]
-
-                favorite_movie_indices.append(
-                    index
-                )
-
-                favorite_movie_rows.append(
-                    movies.loc[index]
-                )
+                if not matches.empty:
+                    index = matches.index[0]
+                    favorite_movie_indices.append(index)
+                    favorite_movie_rows.append(movies.loc[index])
 
 
         # ==================================================
@@ -717,26 +755,36 @@ class ContentRecommender:
                 )
 
 
-            # Explicit user preference gets
-            # more importance than inference.
+                        # --------------------------------------------------
+            # Combine explicit + inferred actor preference
+            # --------------------------------------------------
+            #
+            # Explicit actor preference is the main signal.
+            #
+            # Example:
+            # User explicitly selects Ryan Gosling.
+            #
+            # Inferred actors from favorite movies are only
+            # supporting evidence and cannot overpower the
+            # explicit preference.
 
-            if (
-                explicit_actors
-                and inferred_actors
-            ):
+            if explicit_actors:
 
-                return (
-                    explicit_score * 0.70
-                    + inferred_score * 0.30
+                return min(
+                    1.0,
+                    explicit_score
+                    + (
+                        inferred_score
+                        * INFERRED_ACTOR_STRENGTH
+                    )
                 )
-
-            elif explicit_actors:
-
-                return explicit_score
 
             elif inferred_actors:
 
-                return inferred_score
+                return (
+                    inferred_score
+                    * INFERRED_ACTOR_STRENGTH
+                )
 
             return 0.0
 
@@ -756,6 +804,7 @@ class ContentRecommender:
         def calculate_director_score(
             movie_director
         ):
+            # Explicit user preference gets
 
             movie_director = (
                 str(movie_director)
@@ -788,23 +837,33 @@ class ContentRecommender:
                     inferred_score = 1.0
 
 
-            if (
-                explicit_directors
-                and inferred_directors
-            ):
+                       # --------------------------------------------------
+            # Combine explicit + inferred director preference
+            # --------------------------------------------------
+            #
+            # A director explicitly selected by the user is
+            # strong evidence.
+            #
+            # Directors inferred only because they directed a
+            # favorite movie are weak supporting evidence.
 
-                return (
-                    explicit_score * 0.70
-                    + inferred_score * 0.30
+            if explicit_directors:
+
+                return min(
+                    1.0,
+                    explicit_score
+                    + (
+                        inferred_score
+                        * INFERRED_DIRECTOR_STRENGTH
+                    )
                 )
-
-            elif explicit_directors:
-
-                return explicit_score
 
             elif inferred_directors:
 
-                return inferred_score
+                return (
+                    inferred_score
+                    * INFERRED_DIRECTOR_STRENGTH
+                )
 
             return 0.0
 
@@ -821,28 +880,35 @@ class ContentRecommender:
         # REMOVE FAVORITES FROM CANDIDATES
         # ==================================================
 
-        favorite_movies_lower = [
-
-            movie.lower()
-
-            for movie in favorite_movies
-        ]
-
-        candidate_mask = (
-
-            ~movies["title"]
-            .str.lower()
-            .isin(
-                favorite_movies_lower
+        if favorite_tmdb_ids:
+            favorite_tmdb_id_set = {
+                int(tmdb_id)
+                for tmdb_id in favorite_tmdb_ids
+            }
+            candidate_mask = (
+                ~movies["tmdb_id"].isin(
+                    favorite_tmdb_id_set
+                )
             )
-        )
+        else:
+            favorite_movies_lower = [
+                movie.lower()
+                for movie in favorite_movies
+            ]
+            candidate_mask = (
+                ~movies["title"]
+                .str.lower()
+                .isin(
+                    favorite_movies_lower
+                )
+            )
 
 
         # ==================================================
         # NORMALIZE STORY SCORE
         # ==================================================
 
-        if favorite_movies:
+        if favorite_movie_indices:
 
             candidate_story_scores = (
 
@@ -901,7 +967,7 @@ class ContentRecommender:
         active_scores = []
 
 
-        if favorite_movies:
+        if favorite_movie_indices:
 
             active_scores.append(
                 "story_score"
@@ -977,7 +1043,7 @@ class ContentRecommender:
         # STORY MATCH THRESHOLD
         # ==================================================
 
-        if favorite_movies:
+        if favorite_movie_indices:
 
             candidate_raw_story = (
 
@@ -1018,7 +1084,7 @@ class ContentRecommender:
 
         # Story
 
-        if favorite_movies:
+        if favorite_movie_indices:
 
             movies.loc[
                 movies["story_raw"]
