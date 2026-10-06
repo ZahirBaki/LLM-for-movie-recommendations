@@ -2,27 +2,66 @@
 
 
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 
 
 const API_URL = "http://127.0.0.1:8000";
 
-const COUNTRIES = [
-  { code: "SE", name: "Sweden", flag: "🇸🇪" },
-  { code: "US", name: "United States", flag: "🇺🇸" },
-  { code: "GB", name: "United Kingdom", flag: "🇬🇧" },
-  { code: "DE", name: "Germany", flag: "🇩🇪" },
-  { code: "FR", name: "France", flag: "🇫🇷" },
-  { code: "DK", name: "Denmark", flag: "🇩🇰" },
-  { code: "NO", name: "Norway", flag: "🇳🇴" },
-  { code: "FI", name: "Finland", flag: "🇫🇮" },
-  { code: "NL", name: "Netherlands", flag: "🇳🇱" },
-  { code: "ES", name: "Spain", flag: "🇪🇸" },
-  { code: "IT", name: "Italy", flag: "🇮🇹" },
-  { code: "CA", name: "Canada", flag: "🇨🇦" },
-  { code: "AU", name: "Australia", flag: "🇦🇺" },
+const COUNTRY_CODES = [
+  "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR",
+  "AS", "AT", "AU", "AW", "AX", "AZ", "BA", "BB", "BD", "BE",
+  "BF", "BG", "BH", "BI", "BJ", "BL", "BM", "BN", "BO", "BQ",
+  "BR", "BS", "BT", "BV", "BW", "BY", "BZ", "CA", "CC", "CD",
+  "CF", "CG", "CH", "CI", "CK", "CL", "CM", "CN", "CO", "CR",
+  "CU", "CV", "CW", "CX", "CY", "CZ", "DE", "DJ", "DK", "DM",
+  "DO", "DZ", "EC", "EE", "EG", "EH", "ER", "ES", "ET", "FI",
+  "FJ", "FK", "FM", "FO", "FR", "GA", "GB", "GD", "GE", "GF",
+  "GG", "GH", "GI", "GL", "GM", "GN", "GP", "GQ", "GR", "GS",
+  "GT", "GU", "GW", "GY", "HK", "HM", "HN", "HR", "HT", "HU",
+  "ID", "IE", "IL", "IM", "IN", "IO", "IQ", "IR", "IS", "IT",
+  "JE", "JM", "JO", "JP", "KE", "KG", "KH", "KI", "KM", "KN",
+  "KP", "KR", "KW", "KY", "KZ", "LA", "LB", "LC", "LI", "LK",
+  "LR", "LS", "LT", "LU", "LV", "LY", "MA", "MC", "MD", "ME",
+  "MF", "MG", "MH", "MK", "ML", "MM", "MN", "MO", "MP", "MQ",
+  "MR", "MS", "MT", "MU", "MV", "MW", "MX", "MY", "MZ", "NA",
+  "NC", "NE", "NF", "NG", "NI", "NL", "NO", "NP", "NR", "NU",
+  "NZ", "OM", "PA", "PE", "PF", "PG", "PH", "PK", "PL", "PM",
+  "PN", "PR", "PS", "PT", "PW", "PY", "QA", "RE", "RO", "RS",
+  "RU", "RW", "SA", "SB", "SC", "SD", "SE", "SG", "SH", "SI",
+  "SJ", "SK", "SL", "SM", "SN", "SO", "SR", "SS", "ST", "SV",
+  "SX", "SY", "SZ", "TC", "TD", "TF", "TG", "TH", "TJ", "TK",
+  "TL", "TM", "TN", "TO", "TR", "TT", "TV", "TW", "TZ", "UA",
+  "UG", "UM", "US", "UY", "UZ", "VA", "VC", "VE", "VG", "VI",
+  "VN", "VU", "WF", "WS", "YE", "YT", "ZA", "ZM", "ZW",
 ];
+
+const regionNames = new Intl.DisplayNames(
+  ["en"],
+  { type: "region" }
+);
+
+function countryFlag(code: string) {
+  return code
+    .toUpperCase()
+    .replace(
+      /./g,
+      (char) =>
+        String.fromCodePoint(
+          127397 + char.charCodeAt(0)
+        )
+    );
+}
+
+const COUNTRIES = COUNTRY_CODES
+  .map((code) => ({
+    code,
+    name: regionNames.of(code) ?? code,
+    flag: countryFlag(code),
+  }))
+  .sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
 
 
 
@@ -910,8 +949,26 @@ export default function Home() {
 
   const [countryCode, setCountryCode] =
     useState("SE");
+  const [countrySearch, setCountrySearch] =
+  useState("");
 
+  const [countryOpen, setCountryOpen] =
+  useState(false);
 
+  const countrySelectorRef =
+    useRef<HTMLDivElement>(null);
+
+  const selectedCountry =
+  COUNTRIES.find(
+    (country) => country.code === countryCode
+  );
+
+  const filteredCountries =
+  COUNTRIES.filter((country) =>
+    country.name
+      .toLowerCase()
+      .includes(countrySearch.toLowerCase())
+  );
 
   // ========================================================
 
@@ -972,6 +1029,32 @@ export default function Home() {
   // ========================================================
 
 
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        countrySelectorRef.current &&
+        !countrySelectorRef.current.contains(
+          event.target as Node
+        )
+      ) {
+        setCountryOpen(false);
+        setCountrySearch("");
+      }
+    }
+
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
+    };
+  }, []);
 
   useEffect(() => {
 
@@ -2317,20 +2400,79 @@ export default function Home() {
 
           </div>
 
-          <div className="countrySelector">
-            <label htmlFor="country">Streaming region</label>
-            <select
-              id="country"
-              value={countryCode}
-              onChange={(event) => setCountryCode(event.target.value)}
+<div
+  className="countrySelector"
+  ref={countrySelectorRef}
+>
+  <label>Streaming region</label>
+
+  <div className="selectorWrapper">
+    <div
+      className="countrySearchInput"
+      onClick={() => setCountryOpen(true)}
+    >
+      <span className="countryFlag">
+        {selectedCountry?.flag}
+      </span>
+
+      <input
+        value={
+          countryOpen
+            ? countrySearch
+            : selectedCountry?.name ?? ""
+        }
+        onFocus={() => {
+          setCountryOpen(true);
+          setCountrySearch("");
+        }}
+        onChange={(event) => {
+          setCountrySearch(event.target.value);
+          setCountryOpen(true);
+        }}
+        placeholder="Search country..."
+        autoComplete="off"
+      />
+
+      <span className="countryChevron">
+        ▼
+      </span>
+    </div>
+
+    {countryOpen && (
+      <div className="preferenceDropdown countryDropdown">
+        {filteredCountries.length > 0 ? (
+          filteredCountries.map((country) => (
+            <button
+              type="button"
+              key={country.code}
+              onClick={() => {
+                setCountryCode(country.code);
+                setCountrySearch("");
+                setCountryOpen(false);
+              }}
             >
-              {COUNTRIES.map((country) => (
-                <option key={country.code} value={country.code}>
-                  {country.flag} {country.name}
-                </option>
-              ))}
-            </select>
+              <span className="countryFlag">
+                {country.flag}
+              </span>
+
+              <span>{country.name}</span>
+
+              {country.code === countryCode && (
+                <span className="countryCheck">
+                  ✓
+                </span>
+              )}
+            </button>
+          ))
+        ) : (
+          <div className="countryNoResults">
+            No countries found
           </div>
+        )}
+      </div>
+    )}
+  </div>
+</div>
 
         </div>
 
@@ -3224,93 +3366,136 @@ export default function Home() {
 
                     {/* WHERE TO WATCH */}
 
-                    <div className="watchSection">
-                      <div className="watchHeading">Where to watch</div>
+{/* WHERE TO WATCH */}
+<div className="watchSection compactWatch">
 
-                      {movie.watch_providers.stream.length > 0 && (
-                        <div className="providerRow">
-                          <span className="providerLabel">STREAM</span>
-                          <div className="providerText">
-                            {movie.watch_providers.stream
-                              .slice(0, 3)
-                              .map((provider) => provider.name)
-                              .join(" · ")}
-                          </div>
-                        </div>
-                      )}
+  <div className="watchTopRow">
+    <div className="watchHeading">
+      Where to watch
+    </div>
 
-                      {movie.watch_providers.free.length > 0 && (
-                        <div className="providerRow">
-                          <span className="providerLabel">FREE</span>
-                          <div className="providerText">
-                            {movie.watch_providers.free
-                              .slice(0, 3)
-                              .map((provider) => provider.name)
-                              .join(" · ")}
-                          </div>
-                        </div>
-                      )}
+    <span className="watchRegion">
+      {movie.watch_providers.country_code}
+    </span>
+  </div>
 
-                      {movie.watch_providers.ads.length > 0 && (
-                        <div className="providerRow">
-                          <span className="providerLabel">WITH ADS</span>
-                          <div className="providerText">
-                            {movie.watch_providers.ads
-                              .map((provider) => provider.name)
-                              .join(" · ")}
-                          </div>
-                        </div>
-                      )}
+  {/* SUBSCRIPTION STREAMING */}
+  {movie.watch_providers.stream.length > 0 ? (
+    <div className="streamingBlock">
 
-                      {movie.watch_providers.rent.length > 0 && (
-                        <div className="providerRow">
-                          <span className="providerLabel">RENT</span>
-                          <div className="providerText">
-                            {movie.watch_providers.rent
-                              .slice(0, 3)
-                              .map((provider) => provider.name)
-                              .join(" · ")}
-                          </div>
-                        </div>
-                      )}
+      <span className="providerLabel">
+        STREAM
+      </span>
 
-                      {movie.watch_providers.buy.length > 0 && (
-                        <div className="providerRow">
-                          <span className="providerLabel">BUY</span>
-                          <div className="providerText">
-                            {movie.watch_providers.buy
-                              .slice(0, 3)
-                              .map((provider) => provider.name)
-                              .join(" · ")}
-                          </div>
-                        </div>
-                      )}
+      <div className="providerChips">
 
-                      {movie.watch_providers.stream.length === 0 &&
-                        movie.watch_providers.free.length === 0 &&
-                        movie.watch_providers.ads.length === 0 &&
-                        movie.watch_providers.rent.length === 0 &&
-                        movie.watch_providers.buy.length === 0 && (
-                          <div className="noProviders">
-                            No watch options found for this region.
-                          </div>
-                        )}
+        {movie.watch_providers.stream
+          .slice(0, 3)
+          .map((provider) => (
 
-                      {movie.watch_providers.link && (
-                        <a
-                          className="watchLink"
-                          href={movie.watch_providers.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View all watch options →
-                        </a>
-                      )}
+            <div
+              className="providerChip"
+              key={provider.provider_id}
+              title={provider.name}
+            >
 
-                      <div className="justWatchCredit">
-                        Streaming availability powered by JustWatch
-                      </div>
-                    </div>
+              {provider.logo_url ? (
+                <img
+                  src={provider.logo_url}
+                  alt={provider.name}
+                  title={provider.name}
+                  className="providerLogo"
+                />
+              ) : (
+                <span>{provider.name}</span>
+              )}
+
+            </div>
+
+          ))}
+
+        {movie.watch_providers.stream.length > 3 && (
+          <div className="providerMore">
+            +
+            {movie.watch_providers.stream.length - 3}
+          </div>
+        )}
+
+      </div>
+
+    </div>
+  ) : (
+
+    <div className="noStreaming">
+      No subscription streaming available
+    </div>
+
+  )}
+
+  {/* RENT / BUY */}
+  {(movie.watch_providers.rent.length > 0 ||
+    movie.watch_providers.buy.length > 0) && (
+
+    <div className="purchaseAvailability">
+
+      <span className="purchaseLabel">
+        Also available
+      </span>
+
+      <div className="purchaseOptions">
+
+        {movie.watch_providers.rent.length > 0 && (
+          <span>Rent</span>
+        )}
+
+        {movie.watch_providers.rent.length > 0 &&
+          movie.watch_providers.buy.length > 0 && (
+            <span className="availabilityDot">
+              •
+            </span>
+          )}
+
+        {movie.watch_providers.buy.length > 0 && (
+          <span>Buy</span>
+        )}
+
+      </div>
+
+    </div>
+  )}
+
+  {/* NOTHING AVAILABLE */}
+  {movie.watch_providers.stream.length === 0 &&
+    movie.watch_providers.free.length === 0 &&
+    movie.watch_providers.ads.length === 0 &&
+    movie.watch_providers.rent.length === 0 &&
+    movie.watch_providers.buy.length === 0 && (
+
+      <div className="noWatchOptions">
+        No watch options found for this region.
+      </div>
+
+    )}
+
+  {/* LINK */}
+  {movie.watch_providers.link && (
+
+    <a
+      className="watchLink compactWatchLink"
+      href={movie.watch_providers.link}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      View all watch options →
+    </a>
+
+  )}
+
+  <div className="justWatchCredit">
+    Availability powered by JustWatch
+  </div>
+
+</div>
 
 
 

@@ -1815,7 +1815,203 @@ footer {
   color: #ffffff;
 }
 
+/* ==========================================================
+   COMPACT WHERE TO WATCH
+   ========================================================== */
 
+.compactWatch {
+  margin-top: 20px;
+  padding: 18px 0 8px;
+
+  border: none;
+  border-top: 1px solid #29292f;
+  border-radius: 0;
+
+  background: transparent;
+}
+
+.watchTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 14px;
+}
+
+.compactWatch .watchHeading {
+  margin: 0;
+
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.watchRegion {
+  padding: 3px 7px;
+
+  border: 1px solid #303038;
+  border-radius: 6px;
+
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+
+  opacity: 0.65;
+}
+
+
+/* STREAMING */
+
+.streamingBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.providerChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.providerChip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 42px;
+  height: 42px;
+  padding: 5px;
+
+  border: 1px solid #303038;
+  border-radius: 10px;
+
+  background: #19191e;
+}
+
+.providerChip span {
+  max-width: 95px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.providerLogo {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px;
+  min-height: 32px;
+
+  border-radius: 7px;
+  object-fit: cover;
+}
+
+.providerMore {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 38px;
+  height: 38px;
+
+  border: 1px solid #303038;
+  border-radius: 9px;
+
+  background: #19191e;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  opacity: 0.7;
+}
+
+
+/* NO SUBSCRIPTION STREAMING */
+
+.noStreaming {
+  padding: 0;
+
+  border-radius: 9px;
+
+  background: transparent;
+
+  font-size: 12px;
+  line-height: 1.5;
+
+  opacity: 0.55;
+}
+
+
+/* RENT / BUY */
+
+.purchaseAvailability {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+
+  margin-top: 13px;
+  padding-top: 0;
+
+  border-top: none;
+
+  font-size: 12px;
+}
+
+.purchaseLabel {
+  display: none;
+}
+
+.purchaseOptions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  font-weight: 600;
+}
+
+.purchaseOptions::after {
+  content: " available";
+  opacity: 0.5;
+  font-weight: 400;
+}
+
+.availabilityDot {
+  opacity: 0.35;
+}
+
+
+/* NO PROVIDERS */
+
+.noWatchOptions {
+  margin-top: 10px;
+
+  font-size: 12px;
+  line-height: 1.5;
+
+  opacity: 0.6;
+}
+
+
+/* LINK */
+
+.compactWatchLink {
+  display: inline-block;
+
+  margin-top: 12px;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+
+/* JUSTWATCH */
+
+.compactWatch .justWatchCredit {
+  margin-top: 10px;
+
+  font-size: 9px;
+  opacity: 0.3;
+}
 /* PROVIDER CATEGORY */
 
 .providerRow {
@@ -1868,14 +2064,6 @@ footer {
 
 /* MORE */
 
-.providerMore {
-  margin-top: 7px;
-
-  font-size: 11px;
-  font-weight: 600;
-
-  color: #9999a5;
-}
 
 
 /* VIEW ALL */
@@ -1930,12 +2118,83 @@ footer {
   color: #f0f0f3;
 }
 
-.providerMore {
-  margin-top: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #858593;
+.countrySelector {
+  max-width: 500px;
 }
+.countrySection {
+  margin-top: 48px;
+  padding-top: 40px;
+  border-top: 1px solid #26262c;
+}
+.countrySelector label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.countrySearchInput {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 0 18px;
+
+  background: #0d0d10;
+  border: 1px solid #2a2a30;
+  border-radius: 14px;
+
+  cursor: text;
+}
+
+.countrySearchInput:focus-within {
+  border-color: #555;
+}
+
+.countrySearchInput input {
+  flex: 1;
+  min-width: 0;
+
+  background: transparent;
+  border: none;
+  outline: none;
+
+  color: inherit;
+  font: inherit;
+}
+
+.countryFlag {
+  flex-shrink: 0;
+  font-size: 20px;
+}
+
+.countryChevron {
+  margin-left: auto;
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.countryDropdown {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.countryDropdown button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.countryCheck {
+  margin-left: auto;
+}
+
+.countryNoResults {
+  padding: 16px;
+  opacity: 0.6;
+}
+
 /* Neutralize old provider/logo rules if they still exist earlier in globals.css. */
 .watchSection .providerGroup,
 .watchSection .providerList,
