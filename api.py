@@ -1,6 +1,6 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from typing import List
 
 import pandas as pd
@@ -10,6 +10,10 @@ import os
 import requests
 
 from dotenv import load_dotenv
+from chat_service import ChatServiceError, MovieIntent, parse_movie_message
+from chat_recommender import ChatRecommender, IntentRecommendationResult
+from movie_chat import MovieChatResponse, mock_enabled, respond_to_movie_chat
+from movie_tools import MovieTools
 
 # ==========================================================
 # FASTAPI APP
@@ -250,6 +254,37 @@ class RecommendationRequest(BaseModel):
     # ------------------------------------------------------
 
     top_n: int = 10
+
+
+# ==========================================================
+# CHAT: STATELESS PREFERENCE PARSING
+# ==========================================================
+
+class ChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=10000)
+
+    @field_validator("message")
+    @classmethod
+    def validate_message(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Message must not be empty or whitespace")
+        return value
+
+
+class ChatResponse(BaseModel):
+    message: str
+    parsed: MovieIntent
+
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    try:
+        parsed = await parse_movie_message(request.message)
+        return ChatResponse(message=request.message, parsed=parsed)
+    except ChatServiceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from None
+    except Exception:
+        raise HTTPException(status_code=500, detail="An unexpected chat error occurred.") from None
 
 
 # ==========================================================
@@ -721,11 +756,11 @@ def get_watch_providers(
         data = response.json()
 
 
-    except requests.RequestException as error:
+    except requests.RequestException:
 
         print(
             f"Watch provider request failed "
-            f"for TMDB {tmdb_id}: {error}"
+            f"for TMDB {tmdb_id}"
         )
 
         return empty_result
@@ -1241,3 +1276,40 @@ def recommend(
 
 
     return results
+
+
+def run_intent_recommendation(**inputs):
+    """Reuse /recommend's exact engine call, formatting, and region enrichment."""
+    return recommend(RecommendationRequest(**inputs))
+
+
+chat_recommender = ChatRecommender(engine.content.movies, run_intent_recommendation)
+
+# Late-bound adapters reuse existing endpoints and remain replaceable in tests.
+movie_tools = MovieTools(engine.content.movies, chat_recommender,
+    search_runner=lambda query: search_movies(q=query),
+    provider_runner=lambda tmdb_id, region: get_watch_providers(tmdb_id, region))
+
+
+@app.post("/recommend-from-intent", response_model=IntentRecommendationResult)
+def recommend_from_intent(intent: MovieIntent):
+    try:
+        return chat_recommender.recommend_from_intent(intent)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Unable to process the structured recommendation request.") from None
+
+
+class MovieChatRequest(ChatRequest):
+    country_code: str = Field(default="SE", pattern=r"^[A-Z]{2}$")
+
+
+@app.post("/movie-chat", response_model=MovieChatResponse)
+async def movie_chat(request: MovieChatRequest):
+    try:
+        return await respond_to_movie_chat(request.message, request.country_code, chat_recommender)
+    except Exception:
+        # This UI endpoint deliberately hides configuration and upstream details.
+        from fastapi.responses import JSONResponse
+        response = MovieChatResponse(status="error", country_code=request.country_code,
+            mock_mode=mock_enabled(), assistant_message="Movie AI is temporarily unavailable. Please try again later.")
+        return JSONResponse(status_code=503, content=response.model_dump())
