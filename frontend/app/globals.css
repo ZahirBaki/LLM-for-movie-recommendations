@@ -1,5 +1,52 @@
 @import "tailwindcss";
 
+.siteNavigation { border-bottom: 1px solid var(--border); background: var(--surface); }
+.navigationLinks { width: min(1180px, calc(100% - 40px)); margin: 0 auto; display: flex; gap: 8px; padding: 14px 0; }
+.navigationLinks a { padding: 12px 16px; border-radius: 10px; color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 700; text-align: center; }
+.navigationLinks a:hover { background: var(--surface-light); color: var(--text); }
+.navigationLinks a[aria-current="page"] { background: #302027; color: var(--text); box-shadow: inset 0 -2px var(--accent); }
+.navigationLinks a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.agentTitle { margin: 0; font-size: 32px; letter-spacing: -1px; }
+.agentPage .movieChat { margin-top: 20px; }
+.agentApp { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+.agentApp .siteNavigation { flex-shrink: 0; }
+.agentPage:not([hidden]) { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 20px 0; }
+.agentPage .agentTitle { flex-shrink: 0; }
+.agentPage .movieChat { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.agentPage .movieChatHeading, .agentPage .chatComposer { flex-shrink: 0; }
+.agentPage .chatMessages { flex: 1; min-height: 0; max-height: none; }
+@media (min-width: 900px) and (min-height: 601px) {
+  .agentPage:not([hidden]) { padding: 12px 0; }
+  .agentPage .agentTitle { font-size: 28px; }
+  .agentPage .movieChat { margin-top: 12px; padding: 20px; }
+  .agentPage .chatMessages { margin: 12px 0; }
+  .agentPage .movieChatHeading h2 { margin: 4px 0; font-size: 24px; }
+  .agentPage .movieChatHeading p { margin: 4px 0; }
+}
+@media (max-height: 600px) {
+  .agentPage:not([hidden]) { padding: 10px 0; }
+  .agentPage .agentTitle { font-size: 26px; }
+  .agentPage .movieChat { margin-top: 12px; padding: 16px; }
+  .agentPage .chatMessages { margin: 12px 0; }
+  .agentPage .movieChatHeading h2 { margin: 4px 0; font-size: 22px; }
+  .agentPage .movieChatHeading p { margin: 4px 0; font-size: 12px; }
+  .agentPage .chatComposer textarea { max-height: 100px; }
+}
+@media (max-height: 500px) {
+  .agentPage:not([hidden]) { padding: 8px 0; }
+  .agentPage .agentTitle { font-size: 22px; }
+  .agentPage .movieChat { padding: 12px; margin-top: 8px; }
+  .agentPage .movieChatHeading .eyebrow, .agentPage .movieChatHeading p { display: none; }
+  .agentPage .movieChatHeading h2 { margin: 0; font-size: 20px; }
+  .agentPage .chatMessages { margin: 8px 0; }
+  .agentPage .chatComposer { padding-top: 10px; }
+  .agentPage .chatComposer textarea { height: 52px; min-height: 52px; max-height: 72px; }
+}
+@media (max-width: 600px) {
+  .navigationLinks { width: calc(100% - 24px); gap: 4px; }
+  .navigationLinks a { flex: 1; padding: 12px 6px; font-size: 12px; }
+}
+
 /* Independent, in-memory Movie AI conversation. */
 .movieChat {
   margin-top: 48px;
@@ -11,7 +58,8 @@
 .movieChatHeading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .movieChatHeading h2 { margin: 8px 0; font-size: 26px; }
 .movieChatHeading p { color: var(--muted); font-size: 14px; }
-.chatMessages { margin: 24px 0; max-height: 75vh; overflow-y: auto; padding: 2px; }
+.chatMessages { margin: 24px 0; max-height: 75vh; overflow-y: auto; overscroll-behavior-y: contain; overflow-anchor: none; scroll-behavior: auto; padding: 2px; }
+.chatMessages:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .chatMessage { margin-top: 22px; }
 .chatRole { display: block; margin-bottom: 7px; font-size: 11px; font-weight: 700; color: var(--muted); }
 .chatBubble { display: inline-block; max-width: 85%; margin: 0; padding: 13px 16px; background: var(--surface-light); border-radius: 12px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -22,7 +70,7 @@
 .chatChoices button { padding: 9px 13px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-light); color: var(--text); cursor: pointer; }
 .chatChoices button:hover { border-color: var(--accent); }
 .chatMockLabel { display: block; margin-top: 6px; font-size: 10px; color: var(--muted); }
-.chatLoading { margin-top: 18px; color: var(--muted); font-size: 13px; }
+.chatLoading { flex-shrink: 0; margin: 0 0 12px; color: var(--muted); font-size: 13px; }
 .chatComposer { display: flex; gap: 12px; align-items: flex-end; padding-top: 18px; border-top: 1px solid var(--border); }
 .chatComposer textarea { flex: 1; width: 100%; min-width: 0; resize: vertical; max-height: 180px; border: 1px solid var(--border); border-radius: 10px; background: var(--background); color: var(--text); padding: 12px; font: inherit; font-size: 14px; }
 .chatComposer textarea:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -2241,4 +2289,15 @@ footer {
 .watchSection .providerPill,
 .watchSection img {
   all: unset;
+}
+
+/* Development-only ranking control fits the existing chat heading. */
+.rankingSelector { display: grid; gap: 4px; flex: 0 0 140px; font-size: 12px; }
+.rankingSelector select { width: 100%; min-width: 0; padding: 4px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; font-size: 12px; }
+.movieChatHeading:has(.rankingSelector) { gap: 8px; }
+.movieChatHeading:has(.rankingSelector) > div { min-width: 0; flex: 1; }
+@media (max-width: 600px), (max-height: 500px) {
+  .rankingSelector { flex-basis: 110px; }
+  .rankingSelector span { display: none; }
+  .rankingSelector select { font-size: 11px; }
 }

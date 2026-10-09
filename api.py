@@ -1,7 +1,11 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import request_validation_exception_handler
 from pydantic import BaseModel, Field, field_validator
-from typing import List
+from typing import List, Literal
+from uuid import uuid4
+from experimental_ranking import ranking_context
 
 import pandas as pd
 
@@ -10,10 +14,13 @@ import os
 import requests
 
 from dotenv import load_dotenv
+load_dotenv()  # Load model configuration before importing the chat services.
 from chat_service import ChatServiceError, MovieIntent, parse_movie_message
 from chat_recommender import ChatRecommender, IntentRecommendationResult
 from movie_chat import MovieChatResponse, mock_enabled, respond_to_movie_chat
 from movie_tools import MovieTools
+from movie_guardrails import MAX_MESSAGE_LENGTH
+from movie_session import session_store, handle_session_turn
 
 # ==========================================================
 # FASTAPI APP
@@ -21,8 +28,6 @@ from movie_tools import MovieTools
 # ==========================================================
 # ENVIRONMENT
 # ==========================================================
-
-load_dotenv()
 
 TMDB_API_KEY = os.getenv(
     "TMDB_API_KEY"
@@ -36,6 +41,16 @@ app = FastAPI(
     title="Movie Recommender API",
     version="1.1"
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def chat_validation_error(request, exc):
+    if request.url.path != "/movie-chat":
+        return await request_validation_exception_handler(request, exc)
+    from fastapi.responses import JSONResponse
+    text = f"Use a nonempty message of at most {MAX_MESSAGE_LENGTH:,} characters and a two-letter uppercase country code."
+    result = MovieChatResponse(status="error", country_code="SE", mock_mode=mock_enabled(), assistant_message=text)
+    return JSONResponse(status_code=422, content=result.model_dump())
 
 
 # ==========================================================
@@ -261,7 +276,7 @@ class RecommendationRequest(BaseModel):
 # ==========================================================
 
 class ChatRequest(BaseModel):
-    message: str = Field(min_length=1, max_length=10000)
+    message: str = Field(min_length=1, max_length=MAX_MESSAGE_LENGTH)
 
     @field_validator("message")
     @classmethod
@@ -895,6 +910,10 @@ def get_watch_providers(
 def recommend(
     request: RecommendationRequest
 ):
+    return recommend_cards(request)
+
+
+def recommend_cards(request: RecommendationRequest, *, external_queries=None):
 
     favorite_movies = [
         {
@@ -968,7 +987,8 @@ def recommend(
     # ------------------------------------------------------
 
     top_n=
-        request.top_n
+        request.top_n,
+    **({"external_queries": external_queries} if external_queries else {})
 )
 
 
@@ -1280,15 +1300,47 @@ def recommend(
 
 def run_intent_recommendation(**inputs):
     """Reuse /recommend's exact engine call, formatting, and region enrichment."""
+    queries = inputs.pop("external_queries", None)
+    if queries:
+        return recommend_cards(RecommendationRequest(**inputs), external_queries=queries)
     return recommend(RecommendationRequest(**inputs))
 
 
 chat_recommender = ChatRecommender(engine.content.movies, run_intent_recommendation)
 
+
+def request_tmdb_collection(path, params):
+    """Bounded read-only adapter; tool layer sanitizes exceptions, never logs URLs/keys."""
+    if not TMDB_API_KEY:
+        raise RuntimeError("Collection data unavailable")
+    response = requests.get(f"{TMDB_BASE_URL}{path}",
+        params={**params, "api_key": TMDB_API_KEY, "language": "en-US"}, timeout=5)
+    if response.status_code == 404:
+        return None
+    response.raise_for_status()
+    if len(response.content) > 2_000_000:
+        raise ValueError("Collection response too large")
+    return response.json()
+
 # Late-bound adapters reuse existing endpoints and remain replaceable in tests.
+def request_tmdb_movie(path, params):
+    """Use existing credentials/timeouts; offline development fixtures stay offline."""
+    if mock_enabled():
+        return {"results": [], "total_pages": 1} if path == "/search/movie" else None
+    return request_tmdb_collection(path, params)
+
+
+from runtime_movie_embeddings import RuntimeMovieEmbeddings
+runtime_movie_embeddings = RuntimeMovieEmbeddings(engine.content.overview_embeddings.shape[1],
+    compatibility_samples=[(str(engine.content.movies.iloc[index]["overview"]), engine.content.overview_embeddings[index])
+        for index in (0, len(engine.content.movies) // 2, len(engine.content.movies) - 1)])
+
 movie_tools = MovieTools(engine.content.movies, chat_recommender,
+    external_embeddings=runtime_movie_embeddings,
     search_runner=lambda query: search_movies(q=query),
-    provider_runner=lambda tmdb_id, region: get_watch_providers(tmdb_id, region))
+    provider_runner=lambda tmdb_id, region: get_watch_providers(tmdb_id, region),
+    collection_runner=lambda path, params: request_tmdb_collection(path, params),
+    live_movie_runner=lambda path, params: request_tmdb_movie(path, params))
 
 
 @app.post("/recommend-from-intent", response_model=IntentRecommendationResult)
@@ -1300,16 +1352,26 @@ def recommend_from_intent(intent: MovieIntent):
 
 
 class MovieChatRequest(ChatRequest):
+    ranking_mode: Literal["baseline", "genre_votes"] = "baseline"
     country_code: str = Field(default="SE", pattern=r"^[A-Z]{2}$")
+    session_id: str | None = Field(default=None, max_length=36,
+        pattern=r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$")
 
 
 @app.post("/movie-chat", response_model=MovieChatResponse)
 async def movie_chat(request: MovieChatRequest):
+    token = ranking_context.set((request.ranking_mode, request.session_id or str(uuid4())))
     try:
-        return await respond_to_movie_chat(request.message, request.country_code, chat_recommender)
+        if request.session_id is not None:
+            async with session_store.transaction(request.session_id.lower()) as state:
+                return await handle_session_turn(request.message, request.country_code, state,
+                    chat_recommender, movie_tools, respond_to_movie_chat)
+        return await respond_to_movie_chat(request.message, request.country_code, chat_recommender, movie_tools)
     except Exception:
         # This UI endpoint deliberately hides configuration and upstream details.
         from fastapi.responses import JSONResponse
         response = MovieChatResponse(status="error", country_code=request.country_code,
             mock_mode=mock_enabled(), assistant_message="Movie AI is temporarily unavailable. Please try again later.")
         return JSONResponse(status_code=503, content=response.model_dump())
+    finally:
+        ranking_context.reset(token)

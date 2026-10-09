@@ -18,7 +18,7 @@ class MovieChatTests(unittest.TestCase):
         patch.dict(os.environ, {"MOVIE_CHAT_MOCK": "true", "ENVIRONMENT": "development", "APP_ENV": "development", "NODE_ENV": "development"}).start()
         patch("api.get_watch_providers", side_effect=empty_providers).start()
         patch("requests.sessions.Session.request", side_effect=AssertionError("No outbound network in tests")).start()
-        self.parser = patch("movie_chat.parse_movie_message", new_callable=AsyncMock, side_effect=AssertionError("No OpenAI in mock mode")).start()
+        self.parser = patch("movie_chat.respond_live", new_callable=AsyncMock, side_effect=AssertionError("No OpenAI in mock mode")).start()
         self.addCleanup(patch.stopall)
         self.client = TestClient(api.app)
 
@@ -65,7 +65,7 @@ class MovieChatTests(unittest.TestCase):
     def test_other_states_and_normalization(self):
         self.assertEqual(self.submit("  SOMETHING   LIKE Interstellar  ").json()["status"], "success")
         self.assertEqual(self.submit("Recommend a comedy").json()["status"], "needs_preferences")
-        self.assertEqual(self.submit("Who directed Interstellar?").json()["status"], "unsupported_intent")
+        self.assertEqual(self.submit("Who directed Interstellar?").json()["status"], "success")
         result = self.submit("An arbitrary mock phrase").json()
         self.assertEqual(result["status"], "error")
         self.assertIn("development mock mode", result["assistant_message"])
@@ -78,15 +78,15 @@ class MovieChatTests(unittest.TestCase):
         self.assertEqual(result["parsed_intent"]["country_code"], "US")
         self.assertTrue(all(movie["watch_providers"]["country_code"] == "US" for movie in result["recommendations"]))
 
-    def test_real_mode_reuses_parser_and_overrides_region(self):
+    def test_real_mode_uses_assistant_controller(self):
+        from movie_chat import MovieChatResponse
         self.parser.side_effect = None
-        self.parser.return_value = MovieIntent(intent="recommend", favorite_movies=["Interstellar"], country_code="US", top_n=2)
+        self.parser.return_value = MovieChatResponse(status="success", country_code="SE", assistant_message="Hello")
         with patch.dict(os.environ, {"MOVIE_CHAT_MOCK": "false"}):
-            result = self.submit("Any natural language", "SE").json()
-        self.assertEqual(result["status"], "success")
+            result = self.submit("Hello", "SE").json()
+        self.assertEqual(result["assistant_message"], "Hello")
         self.assertFalse(result["mock_mode"])
-        self.assertEqual(result["parsed_intent"]["country_code"], "SE")
-        self.parser.assert_awaited_once_with("Any natural language")
+        self.parser.assert_awaited_once_with("Hello", "SE", api.movie_tools)
 
     def test_production_disables_mock_and_missing_flag_defaults_off(self):
         self.parser.side_effect = ChatServiceError(503, "sensitive upstream detail")

@@ -354,12 +354,18 @@ class ContentRecommender:
         favorite_genres=None,
         favorite_actors=None,
         favorite_directors=None,
-        top_n=None
+        top_n=None,
+        external_queries=None
     ):
 
         # --------------------------------------------------
         # Handle missing preferences
         # --------------------------------------------------
+
+        external_queries = external_queries or []
+        from runtime_movie_embeddings import validate_embedding
+        for query in external_queries:
+            validate_embedding(query.embedding, self.overview_embeddings.shape[1])
 
         favorite_movies = (
             favorite_movies or []
@@ -405,6 +411,7 @@ class ContentRecommender:
 
 
         if not any([
+            external_queries,
             favorite_tmdb_ids,
             favorite_movies,
             favorite_genres,
@@ -480,13 +487,17 @@ class ContentRecommender:
         # STORY SCORE
         # ==================================================
 
-        if favorite_movie_indices:
+        has_story_queries = bool(favorite_movie_indices or external_queries)
+        if has_story_queries:
 
             favorite_embeddings = (
                 self.overview_embeddings[
                     favorite_movie_indices
                 ]
             )
+
+            if external_queries:
+                favorite_embeddings = np.concatenate([favorite_embeddings, np.stack([query.embedding for query in external_queries])], axis=0)
 
             # Embeddings are normalized,
             # therefore dot product = cosine similarity.
@@ -526,6 +537,7 @@ class ContentRecommender:
         inferred_directors = set()
 
 
+        favorite_movie_rows.extend({"genres": query.genres, "actors": query.actors, "director": query.director} for query in external_queries)
         for movie_row in favorite_movie_rows:
 
             # ----------------------------------------------
@@ -880,11 +892,8 @@ class ContentRecommender:
         # REMOVE FAVORITES FROM CANDIDATES
         # ==================================================
 
-        if favorite_tmdb_ids:
-            favorite_tmdb_id_set = {
-                int(tmdb_id)
-                for tmdb_id in favorite_tmdb_ids
-            }
+        if favorite_tmdb_ids or external_queries:
+            favorite_tmdb_id_set = {int(tmdb_id) for tmdb_id in favorite_tmdb_ids} | {query.tmdb_id for query in external_queries}
             candidate_mask = (
                 ~movies["tmdb_id"].isin(
                     favorite_tmdb_id_set
@@ -908,7 +917,7 @@ class ContentRecommender:
         # NORMALIZE STORY SCORE
         # ==================================================
 
-        if favorite_movie_indices:
+        if has_story_queries:
 
             candidate_story_scores = (
 
@@ -967,7 +976,7 @@ class ContentRecommender:
         active_scores = []
 
 
-        if favorite_movie_indices:
+        if has_story_queries:
 
             active_scores.append(
                 "story_score"
@@ -1043,7 +1052,7 @@ class ContentRecommender:
         # STORY MATCH THRESHOLD
         # ==================================================
 
-        if favorite_movie_indices:
+        if has_story_queries:
 
             candidate_raw_story = (
 
@@ -1084,7 +1093,7 @@ class ContentRecommender:
 
         # Story
 
-        if favorite_movie_indices:
+        if has_story_queries:
 
             movies.loc[
                 movies["story_raw"]

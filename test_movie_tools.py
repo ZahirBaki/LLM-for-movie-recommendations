@@ -24,7 +24,8 @@ class MovieToolsTests(unittest.TestCase):
         self.original_provider = api.get_watch_providers
         patch("api.get_watch_providers", side_effect=empty_providers).start()
         patch("requests.sessions.Session.request", side_effect=AssertionError("No network in tool tests")).start()
-        patch("movie_chat.parse_movie_message", new_callable=AsyncMock, side_effect=AssertionError("No OpenAI in tool tests")).start()
+        patch.object(api.movie_tools, "live_movie_runner", None).start()  # Local-only fixtures; live resolution has separate mocked coverage.
+        patch("movie_chat.respond_live", new_callable=AsyncMock, side_effect=AssertionError("No OpenAI in tool tests")).start()
         self.addCleanup(patch.stopall)
         self.tools = api.movie_tools
 
@@ -105,7 +106,8 @@ class MovieToolsTests(unittest.TestCase):
             expected = api.chat_recommender.recommend_from_intent(intent)
             actual = self.tools.recommend_movies(intent)
             us = self.tools.recommend_movies(intent.model_copy(update={"country_code": "US"}))
-        self.assertEqual(actual.model_dump(), expected.model_dump())
+        self.assertEqual(actual.model_dump(exclude={"external_movies"}), expected.model_dump())
+        self.assertEqual(actual.external_movies, [])
         self.assertEqual([movie["tmdb_id"] for movie in actual.recommendations], [movie["tmdb_id"] for movie in us.recommendations])
         self.assertEqual([movie["final_score"] for movie in actual.recommendations], [movie["final_score"] for movie in us.recommendations])
         self.assertTrue(all(movie["watch_providers"]["country_code"] == "US" for movie in us.recommendations))

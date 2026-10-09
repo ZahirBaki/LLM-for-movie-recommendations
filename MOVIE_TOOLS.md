@@ -1,3 +1,12 @@
+# Conversational integration
+
+Grounded collection tools and normalization now extend these capabilities; see
+[MOVIE_COLLECTIONS.md](MOVIE_COLLECTIONS.md). No scoring/artifact changes are involved.
+
+The capabilities below are now exposed through the real tool-calling controller
+documented in [MOVIE_ASSISTANT.md](MOVIE_ASSISTANT.md). Their backend implementations
+and ranking behavior are unchanged.
+
 # Future Movie AI tool contracts
 
 These are tested Python capabilities, not active OpenAI tools. No LLM tool calling,

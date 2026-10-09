@@ -1,3 +1,14 @@
+# Current assistant milestone
+
+The collection/guardrails milestone is documented in
+[MOVIE_COLLECTIONS.md](MOVIE_COLLECTIONS.md), including backend-owned collection
+lists and clarification, X-Men identity fixes, domain redirects and current limits.
+
+`/movie-chat` now uses the real tool-calling controller described in
+[MOVIE_ASSISTANT.md](MOVIE_ASSISTANT.md). The historical parser-only orchestration
+notes below describe the previous milestone; the frontend card contract and
+development recommendation fixtures remain compatible.
+
 # Movie AI chat (milestone 3)
 
 `POST /movie-chat` accepts `{message, country_code}`. It reuses

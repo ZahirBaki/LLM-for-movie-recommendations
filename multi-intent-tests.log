@@ -1,0 +1,47 @@
+
+Starting recommendation API...
+Loading recommendation engine...
+
+
+Initializing recommendation engine...
+Loading content recommender...
+Movies loaded: 62398
+Embeddings: (62398, 384)
+Content recommender ready.
+
+Loading saved SVD model...
+Movie factors: (16034, 50)
+Movies in collaborative model: 16034
+
+Saved SVD model loaded.
+
+Recommendation engine ready.
+
+Recommendation API ready.
+
+C:\Users\zahir\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+test_confident_duplicate_dominance_preserved (test_multi_intent_followups.ConfidentTitleTests.test_confident_duplicate_dominance_preserved) ... ok
+test_exact_case_space_and_explicit_year (test_multi_intent_followups.ConfidentTitleTests.test_exact_case_space_and_explicit_year) ... ok
+test_explicit_mismatched_year_never_selects_confident_local (test_multi_intent_followups.ConfidentTitleTests.test_explicit_mismatched_year_never_selects_confident_local) ... ok
+test_genuine_duplicates_remain_ambiguous (test_multi_intent_followups.ConfidentTitleTests.test_genuine_duplicates_remain_ambiguous) ... ok
+test_low_recognition_local_still_uses_live_fallback (test_multi_intent_followups.ConfidentTitleTests.test_low_recognition_local_still_uses_live_fallback) ... ok
+test_real_catalog_interstellar_auto_resolves (test_multi_intent_followups.ConfidentTitleTests.test_real_catalog_interstellar_auto_resolves) ... ok
+test_combined_exclusions_year_filters_and_shortage (test_multi_intent_followups.FollowupTests.test_combined_exclusions_year_filters_and_shortage) ... ok
+test_complete_parse_does_not_drop_unrecognized_filters (test_multi_intent_followups.FollowupTests.test_complete_parse_does_not_drop_unrecognized_filters) ... ok
+test_exclude_last_and_show_more (test_multi_intent_followups.FollowupTests.test_exclude_last_and_show_more) ... ok
+test_invalid_number_does_not_partly_mark_or_recommend (test_multi_intent_followups.FollowupTests.test_invalid_number_does_not_partly_mark_or_recommend) ... ok
+test_more_without_seen_updates (test_multi_intent_followups.FollowupTests.test_more_without_seen_updates) ... ok
+test_pending_external_clarification_still_resumes_then_combined (test_multi_intent_followups.FollowupTests.test_pending_external_clarification_still_resumes_then_combined) ... ok
+test_preserves_mixed_seeds_and_country_actual_engine (test_multi_intent_followups.FollowupTests.test_preserves_mixed_seeds_and_country_actual_engine) ... ok
+test_seen_first_two_and_more (test_multi_intent_followups.FollowupTests.test_seen_first_two_and_more) ... ok
+test_session_isolation (test_multi_intent_followups.FollowupTests.test_session_isolation) ... ok
+test_structured_card_order_and_no_repeated_titles (test_multi_intent_followups.FollowupTests.test_structured_card_order_and_no_repeated_titles) ... ok
+test_unicode_apostrophe_and_no_matching_results (test_multi_intent_followups.FollowupTests.test_unicode_apostrophe_and_no_matching_results) ... ok
+test_updates_exclusions_before_engine_call (test_multi_intent_followups.FollowupTests.test_updates_exclusions_before_engine_call) ... ok
+test_watched_number_list_recommend_others (test_multi_intent_followups.FollowupTests.test_watched_number_list_recommend_others) ... ok
+
+----------------------------------------------------------------------
+Ran 19 tests in 7.369s
+
+OK

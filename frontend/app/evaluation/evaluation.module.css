@@ -1,0 +1,48 @@
+.page { width: min(1200px, calc(100% - 40px)); margin: 32px auto 64px; color: var(--text); overflow-wrap: anywhere; }
+.header { max-width: 850px; }
+.header h1 { font-size: clamp(26px, 4vw, 38px); margin: 10px 0; }
+.header p, .movieDetails p { color: var(--muted); line-height: 1.6; }
+.eyebrow { text-transform: uppercase; letter-spacing: 2px; font-size: 12px; }
+.page button { padding: 12px 18px; min-height: 44px; background: var(--surface-light); color: var(--text); border: 1px solid var(--border); border-radius: 9px; cursor: pointer; }
+.page button:disabled, .page select:disabled { opacity: .55; cursor: default; }
+.page button:focus-visible, .page select:focus-visible, .page textarea:focus-visible, .page summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.scenarios { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 28px; }
+.scenarios button { font-size: 13px; }
+.scenarios button[aria-current] { border-color: var(--accent); background: #302027; }
+.progress { font-weight: 700; margin-top: 24px; }
+.lists { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; margin-top: 24px; }
+.list { min-width: 0; padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+.list h3 { font-size: 23px; margin: 0 0 20px; }
+.list ol { margin: 0; padding-left: 24px; }
+.list li { padding: 12px 0 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.list li:last-child { border-bottom: 0; margin-bottom: 0; }
+.movie { display: flex; gap: 14px; align-items: flex-start; }
+.movie img, .noPoster { width: 72px; height: 108px; flex-shrink: 0; border-radius: 6px; object-fit: cover; background: var(--surface-light); }
+.noPoster { display: grid; align-content: center; text-align: center; font-size: 11px; color: var(--muted); }
+.movieDetails { min-width: 0; flex: 1; }
+.movieDetails h4 { font-size: 16px; margin: 0 0 6px; }
+.movieDetails h4 span { font-weight: 400; }
+.movieDetails p { font-size: 13px; margin: 0 0 8px; }
+.movieDetails summary { cursor: pointer; font-size: 13px; }
+.movieDetails details p { margin-top: 10px; }
+.rating { display: flex; flex-direction: column; gap: 6px; font-size: 13px; margin-top: 14px; }
+.rating select, .notes textarea { width: 100%; min-width: 0; min-height: 44px; padding: 10px; color: var(--text); background: var(--background); border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
+.preference { display: flex; flex-wrap: wrap; gap: 14px; margin: 28px 0 20px; padding: 18px; border: 1px solid var(--border); border-radius: 10px; }
+.preference legend { font-weight: 700; padding: 0 6px; }
+.preference label { display: flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
+.preference input { accent-color: var(--accent); }
+.notes { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.notes textarea { resize: vertical; }
+.error { padding: 14px; border: 1px solid var(--accent); border-radius: 8px; }
+.notice { color: var(--muted); line-height: 1.6; }
+.export { margin-top: 32px; padding: 24px; border: 1px solid var(--border); border-radius: 14px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 700px) {
+  .page { width: calc(100% - 24px); margin-top: 20px; }
+  .lists { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .list { padding: 14px; }
+  .movie { gap: 10px; }
+  .movie img, .noPoster { width: 60px; height: 90px; }
+  .scenarios button { flex: 1 1 140px; }
+  .preference { flex-direction: column; }
+}

@@ -1,0 +1,197 @@
+C:\Users\zahir\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+
+Starting recommendation API...
+Loading recommendation engine...
+
+
+Initializing recommendation engine...
+Loading content recommender...
+Movies loaded: 62398
+Embeddings: (62398, 384)
+Content recommender ready.
+
+Loading saved SVD model...
+Movie factors: (16034, 50)
+Movies in collaborative model: 16034
+
+Saved SVD model loaded.
+
+Recommendation engine ready.
+
+Recommendation API ready.
+
+
+================================================================================
+PROJECT HAIL MARY DIAGNOSTIC
+================================================================================
+
+Initializing recommendation engine...
+
+Initializing recommendation engine...
+Loading content recommender...
+Movies loaded: 62398
+Embeddings: (62398, 384)
+Content recommender ready.
+
+Loading saved SVD model...
+Movie factors: (16034, 50)
+Movies in collaborative model: 16034
+
+Saved SVD model loaded.
+
+Recommendation engine ready.
+
+================================================================================
+TEST INPUT
+================================================================================
+
+Favorite movies:
+ - Interstellar
+ - Gravity
+ - The Martian
+
+Soft actor preference:
+
+================================================================================
+TARGET MOVIE IN TMDB CATALOG
+================================================================================
+
+Title: Project Hail Mary
+TMDB ID: 687163
+Year: 2026
+Genres: Science Fiction, Adventure
+Director: Phil Lord, Christopher Miller
+Actors: Ryan Gosling, Sandra Hüller, James Ortiz, Lionel Boyce, Milana Vayntrub, Ken Leung, Priya Kansara, Mia Soteriou, Annelle Olaleye, Maya Eva Hosein
+
+================================================================================
+ACTOR METADATA CHECK
+================================================================================
+
+PASS: Ryan Gosling exists in Project Hail Mary's actor metadata.
+
+================================================================================
+CONTENT MODEL
+================================================================================
+
+Top 20 content recommendations:
+
+ diagnostic_rank                                title  release_year  story_score  genre_score  actor_score  director_score  content_score
+               1                             Free Guy          2021     0.971224          0.6     0.000000             0.0       0.571823
+               2                         Space Chimps          2008     0.861634          0.6     0.006897             0.0       0.562355
+               3                            Time Trap          2014     0.901578          0.6     0.000000             0.0       0.543965
+               4                            Mickey 17          2025     0.880523          0.6     0.000000             0.0       0.535543
+               5            I Hired a Contract Killer          1990     0.864209          0.6     0.000000             0.0       0.529017
+               6                           Prometheus          2012     1.000000          0.2     0.000000             0.2       0.523333
+               7 The Hitch Hikers Guide to the Galaxy          1981     0.834132          0.6     0.000000             0.0       0.516986
+               8                 The Wild Blue Yonder          2005     0.830391          0.6     0.000000             0.0       0.515490
+               9                 The Astronaut Farmer          2007     0.703363          0.8     0.000000             0.0       0.514679
+              10                     Omer The Tourist          1964     0.818551          0.6     0.000000             0.0       0.510754
+              11                        The Big Empty          2003     0.728589          0.6     0.006897             0.0       0.509137
+              12                     Chameleon Street          1991     0.810045          0.6     0.000000             0.0       0.507351
+              13                     Small Apartments          2012     0.809788          0.6     0.000000             0.0       0.507249
+              14   Journey to the Center of the Earth          2008     0.805364          0.6     0.000000             0.0       0.505479
+              15  The Butterfly Effect 3: Revelations          2009     0.805148          0.6     0.000000             0.0       0.505392
+              16                        Human Highway          1982     0.803737          0.6     0.000000             0.0       0.504828
+              17                We Have Only One Life          1958     0.926539          0.4     0.000000             0.0       0.503949
+              18                  My Favorite Martian          1999     0.836600          0.4     0.006897             0.0       0.502341
+              19                       Going in Style          2017     0.707440          0.6     0.006897             0.0       0.500677
+              20            James vs. His Future Self          2019     0.784909          0.6     0.000000             0.0       0.497297
+
+--------------------------------------------------------------------------------
+PROJECT HAIL MARY — CONTENT RESULT
+--------------------------------------------------------------------------------
+
+Content rank: 781
+story_score: 0.65608513
+genre_score: 0.4
+actor_score: 0.0
+director_score: 0.0
+content_score: 0.39576739867528277
+
+================================================================================
+FAVORITE MOVIE MAPPING
+================================================================================
+
+Favorite TMDB IDs: []
+SVD-usable favorites: []
+Usable favorite count: 0
+
+================================================================================
+SVD AVAILABILITY
+================================================================================
+
+Project Hail Mary has NO MovieLens/TMDB mapping.
+SVD availability: NO
+
+================================================================================
+FINAL RECOMMENDATION ENGINE
+================================================================================
+
+
+===========================================================================
+RECOMMENDATION REQUEST
+===========================================================================
+
+Favorite movies: ['Interstellar', 'Gravity', 'The Martian']
+Soft genres: []
+Soft actors: []
+Soft directors: []
+Required genres: []
+Required actors: []
+Required directors: []
+Excluded genres: []
+Excluded actors: []
+Excluded directors: []
+Year range: None - None
+
+Calculating content scores...
+No valid content preferences were provided.
+
+Favorite TMDB IDs: []
+Favorites usable by SVD: 0 / 0
+
+Not enough usable SVD favorites.
+
+Selected mode: CONTENT — SVD fallback
+No recommendations satisfy the request.
+
+Final Top 10:
+
+Empty DataFrame
+Columns: []
+Index: []
+.......Executing <Task pending name='Task-39' coro=<ServiceTests.test_real_sdk_structured_parse() running at C:\Users\zahir\Desktop\projects\movie-recommender\test_chat.py:89> wait_for=<Future pending cb=[_chain_future.<locals>._call_check_cancel() at C:\Users\zahir\AppData\Local\Programs\Python\Python314\Lib\asyncio\futures.py:393, Task.task_wakeup()] created at C:\Users\zahir\AppData\Local\Programs\Python\Python314\Lib\asyncio\base_events.py:460> cb=[_run_until_complete_cb() at C:\Users\zahir\AppData\Local\Programs\Python\Python314\Lib\asyncio\base_events.py:181] created at C:\Users\zahir\AppData\Local\Programs\Python\Python314\Lib\asyncio\runners.py:110> took 1.191 seconds
+Executing <Task finished name='Task-39' coro=<ServiceTests.test_real_sdk_structured_parse() done, defined at C:\Users\zahir\Desktop\projects\movie-recommender\test_chat.py:69> result=None created at C:\Users\zahir\AppData\Local\Programs\Python\Python314\Lib\asyncio\runners.py:110> took 0.252 seconds
+................................Movie research unavailable: invalid_result
+......................................................Movie research unavailable: invalid_result
+Movie research unavailable: invalid_result
+.Movie research unavailable: request_failed (HTTP unknown)
+Movie research unavailable: invalid_result
+Movie research unavailable: incomplete
+Movie research unavailable: invalid_result
+.....................................................E.......................................
+======================================================================
+ERROR: test_project_hail_mary (unittest.loader._FailedTest.test_project_hail_mary)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_project_hail_mary
+Traceback (most recent call last):
+  File "C:\Users\zahir\AppData\Local\Programs\Python\Python314\Lib\unittest\loader.py", line 433, in _find_test_path
+    module = self._get_module_from_name(name)
+  File "C:\Users\zahir\AppData\Local\Programs\Python\Python314\Lib\unittest\loader.py", line 374, in _get_module_from_name
+    __import__(name)
+    ~~~~~~~~~~^^^^^^
+  File "C:\Users\zahir\Desktop\projects\movie-recommender\test_project_hail_mary.py", line 448, in <module>
+    final_results["tmdb_id"],
+    ~~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\Users\zahir\AppData\Local\Programs\Python\Python314\Lib\site-packages\pandas\core\frame.py", line 4378, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\zahir\AppData\Local\Programs\Python\Python314\Lib\site-packages\pandas\core\indexes\range.py", line 525, in get_loc
+    raise KeyError(key)
+KeyError: 'tmdb_id'
+
+
+----------------------------------------------------------------------
+Ran 187 tests in 55.056s
+
+FAILED (errors=1)

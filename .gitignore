@@ -26,3 +26,9 @@ data/ml-32m/
 # Generated SVD model
 data/svd_movie_factors.npy
 data/svd_movie_index.csv
+
+# Local anonymous human reviews and their private blind mappings
+evaluation_results/human/
+
+# Local experimental ranking diagnostics
+.ranking-diagnostics.jsonl

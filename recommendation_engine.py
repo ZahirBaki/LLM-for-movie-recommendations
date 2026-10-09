@@ -1,3 +1,7 @@
+import json
+import logging
+from uuid import uuid4
+from experimental_ranking import enabled, ranking_context, excluded_context, rerank, tags, record_diagnostic
 import pandas as pd
 
 from content_recommender import ContentRecommender
@@ -104,9 +108,11 @@ class RecommendationEngine:
         favorite_tmdb_ids,
         favorite_genres,
         favorite_actors,
-        favorite_directors
+        favorite_directors,
+        external_queries=None
     ):
 
+        query_inputs = {"external_queries": external_queries} if external_queries else {}
         return self.content.get_scores(
 
             favorite_movies=favorite_movies,
@@ -119,7 +125,8 @@ class RecommendationEngine:
 
             favorite_directors=favorite_directors,
 
-            top_n=None
+            top_n=None,
+            **query_inputs
         )
 
 
@@ -1191,7 +1198,9 @@ class RecommendationEngine:
         min_year=None,
         max_year=None,
 
-        top_n=DEFAULT_TOP_N
+        top_n=DEFAULT_TOP_N,
+        external_queries=None,
+        ranking_mode=None
     ):
 
 
@@ -1199,6 +1208,11 @@ class RecommendationEngine:
         # NORMALIZE INPUTS
         # ==================================================
 
+        requested_mode, request_id = ranking_context.get()
+        request_id = request_id or str(uuid4())
+        requested_mode = ranking_mode or requested_mode
+        applied_mode = "baseline"
+        fallback = "feature_disabled" if requested_mode == "genre_votes" and not enabled() else None
         favorite_movies = favorite_movies or []
 
         favorite_movie_titles = [
@@ -1313,7 +1327,8 @@ class RecommendationEngine:
 
                 favorite_actors,
 
-                favorite_directors
+                favorite_directors,
+                **({"external_queries": external_queries} if external_queries else {})
             )
         )
 
@@ -1436,8 +1451,10 @@ class RecommendationEngine:
         # 7. SVD PRIMARY
         # ==================================================
 
-        if enough_svd_favorites:
+        if enough_svd_favorites and not external_queries:
 
+            if requested_mode == "genre_votes" and enabled():
+                fallback = "collaborative_primary"
             print(
                 "\nUsing SVD as primary model..."
             )
@@ -1545,7 +1562,6 @@ class RecommendationEngine:
                 )
             )
 
-
             if has_hard_constraints:
 
                 mode = (
@@ -1575,15 +1591,29 @@ class RecommendationEngine:
                 "\nNot enough usable SVD favorites."
             )
 
+            if requested_mode == "genre_votes" and enabled() and excluded_context.get():
+                filtered_content = filtered_content[~filtered_content.tmdb_id.isin(excluded_context.get())]
+
             recommendations = (
                 self.recommend_content(
 
                     filtered_content,
 
-                    top_n
+                    200 if requested_mode == "genre_votes" and enabled() else top_n
                 )
             )
 
+
+            if requested_mode == "genre_votes" and enabled():
+                seed_ids = set(favorite_tmdb_ids)
+                union = set().union(*(tags(value) for value in self.content.movies.loc[self.content.movies.tmdb_id.isin(seed_ids), "genres"]))
+                for query in external_queries or []:
+                    union.update(tags(query.genres))
+                recommendations = rerank(recommendations, self.content.movies, union)
+                if recommendations.empty:
+                    fallback = "empty_candidate_pool"
+                else:
+                    applied_mode = "genre_votes"
 
             if has_hard_constraints:
 
@@ -1608,12 +1638,25 @@ class RecommendationEngine:
         # 9. FINAL OUTPUT
         # ==================================================
 
+        if external_queries:
+            mode = "CONTENT - external movie query"
+
         print(
             "\nSelected mode:",
             mode
         )
 
 
+        diagnostic = {"request_id": request_id, "requested_mode": requested_mode, "applied_mode": applied_mode,
+            "lane": "collaborative_primary" if enough_svd_favorites and not external_queries else "content_only",
+            "experimental_applied": applied_mode == "genre_votes", "fallback_reason": fallback,
+            "seed_tmdb_ids": favorite_tmdb_ids + [query.tmdb_id for query in external_queries or []],
+            "candidate_pool_size": len(recommendations),
+            "final_ranked_tmdb_ids": recommendations.head(top_n).get("tmdb_id", pd.Series(dtype=int)).astype(int).tolist(),
+            "scores": json.loads(recommendations.head(top_n)[[column for column in ("tmdb_id", "content_score", "story_score", "genre_score", "actor_score", "director_score", "multi_match_bonus", "svd_score", "final_score", "experiment_score") if column in recommendations]].to_json(orient="records"))}
+        logging.getLogger("movie.ranking").info("ranking %s", json.dumps(diagnostic, allow_nan=False))
+        record_diagnostic("ranking", diagnostic)
+        recommendations.attrs["ranking_diagnostics"] = diagnostic
         if recommendations.empty:
 
             print(
