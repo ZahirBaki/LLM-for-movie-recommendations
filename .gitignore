@@ -10,25 +10,44 @@ __pycache__/
 venv/
 
 # Generated movie data
-data/tmdb_movies.csv
-data/movie_embeddings.npy
+data/processed/tmdb_movies.csv
+data/models/movie_embeddings.npy
 
 # Temporary catalog/progress files
-data/*_progress.csv
-data/*_temp.csv
+data/processed/*_progress.csv
+data/processed/*_temp.csv
 
 # VS Code
 .vscode/
 
 # MovieLens dataset
-data/ml-32m/
+data/raw/ml-32m/
 
 # Generated SVD model
-data/svd_movie_factors.npy
-data/svd_movie_index.csv
+data/models/svd_movie_factors.npy
+data/models/svd_movie_index.csv
 
 # Local anonymous human reviews and their private blind mappings
-evaluation_results/human/
+evaluation/results/human/
 
 # Local experimental ranking diagnostics
-.ranking-diagnostics.jsonl
+logs/ranking.jsonl
+
+# Local generated verification logs and disposable browser fixtures
+logs/
+.env.*
+!.env.example
+frontend/node_modules/
+frontend/.next/
+*.tsbuildinfo
+.human-browser-test/
+
+# Local credentials and generated diagnostic output
+/.aws/
+*.pem
+*.key
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*

@@ -1,0 +1,110 @@
+[
+  {
+    "file": "scripts/legacy/matrix_factorization.py",
+    "binding": "np",
+    "source": "numpy",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  },
+  {
+    "file": "tests/backend/test_experimental_ranking.py",
+    "binding": "genre_votes_scores",
+    "source": "backend.recommendation.experimental_ranking.genre_votes_scores",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  },
+  {
+    "file": "tests/backend/test_external_movie_embeddings.py",
+    "binding": "MovieChatResponse",
+    "source": "backend.services.movie_chat.MovieChatResponse",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  },
+  {
+    "file": "tests/backend/test_human_evaluation.py",
+    "binding": "copy",
+    "source": "copy",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  },
+  {
+    "file": "tests/backend/test_live_movie_resolution.py",
+    "binding": "deepcopy",
+    "source": "copy.deepcopy",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  },
+  {
+    "file": "tests/backend/test_live_movie_resolution.py",
+    "binding": "patch",
+    "source": "unittest.mock.patch",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  },
+  {
+    "file": "tests/backend/test_movie_chat.py",
+    "binding": "MovieIntent",
+    "source": "backend.services.chat_service.MovieIntent",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  },
+  {
+    "file": "tests/backend/test_movie_session.py",
+    "binding": "respond_to_movie_chat",
+    "source": "backend.services.movie_chat.respond_to_movie_chat",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  },
+  {
+    "file": "tests/backend/test_movie_session.py",
+    "binding": "preference_update",
+    "source": "backend.sessions.movie_session.preference_update",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  },
+  {
+    "file": "tests/backend/test_movie_tools.py",
+    "binding": "ChatRecommender",
+    "source": "backend.services.chat_recommender.ChatRecommender",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  },
+  {
+    "file": "tests/backend/test_multi_intent_followups.py",
+    "binding": "contextlib",
+    "source": "contextlib",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  },
+  {
+    "file": "tests/backend/test_multi_intent_followups.py",
+    "binding": "io",
+    "source": "io",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  },
+  {
+    "file": "tests/backend/test_multi_intent_followups.py",
+    "binding": "MovieSessionState",
+    "source": "backend.sessions.movie_session.MovieSessionState",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  },
+  {
+    "file": "tests/backend/test_recommendation_quality.py",
+    "binding": "copy",
+    "source": "copy",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  },
+  {
+    "file": "tests/backend/test_recommendation_quality.py",
+    "binding": "Mock",
+    "source": "unittest.mock.Mock",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  },
+  {
+    "file": "tests/backend/test_recommendation_references.py",
+    "binding": "MovieChatResponse",
+    "source": "backend.services.movie_chat.MovieChatResponse",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  },
+  {
+    "file": "tests/backend/test_word_count_followups.py",
+    "binding": "MovieIntent",
+    "source": "backend.services.chat_service.MovieIntent",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  },
+  {
+    "file": "tests/backend/test_word_count_followups.py",
+    "binding": "MovieReference",
+    "source": "backend.sessions.movie_session.MovieReference",
+    "disposition": "Removed unused binding after checking in-file AST usage and repository import/re-export references; standard helpers or modules already loaded by retained imports."
+  }
+]

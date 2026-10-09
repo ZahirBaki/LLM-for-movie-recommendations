@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { Recommendation } from "./movie-types";
 
 export default function MovieCard({ movie, index }: { movie: Recommendation; index: number }) {
@@ -8,7 +9,7 @@ export default function MovieCard({ movie, index }: { movie: Recommendation; ind
                 >
                   <div className="posterContainer">
                     {movie.poster_url ? (
-                      <img
+                      <Image unoptimized loading="eager" width={500} height={750}
                         src={
                           movie.poster_url
                         }
@@ -79,7 +80,7 @@ export default function MovieCard({ movie, index }: { movie: Recommendation; ind
               title={provider.name}
             >
               {provider.logo_url ? (
-                <img
+                <Image unoptimized loading="eager" width={32} height={32}
                   src={provider.logo_url}
                   alt={provider.name}
                   title={provider.name}

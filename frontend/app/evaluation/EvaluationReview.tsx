@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import styles from "./evaluation.module.css";
 
 type Side = "A" | "B";
@@ -11,6 +12,11 @@ type Draft = { ratings: Record<string, string>; preference: string; notes: strin
 const API = "http://127.0.0.1:8013";
 const SESSION_KEY = "movie-human-review-session-v1";
 const emptyDraft = (): Draft => ({ ratings: {}, preference: "", notes: "" });
+function readDraft(session: Session, index: number): Draft {
+  const key = `${SESSION_KEY}:${session.evaluation_id}:${session.scenarios[index].scenario_id}`;
+  try { return JSON.parse(localStorage.getItem(key) || "null") || emptyDraft(); }
+  catch { return emptyDraft(); }
+}
 
 async function request(path: string, body?: unknown): Promise<Session> {
   const response = await fetch(API + path, { cache: "no-store", ...(body === undefined ? {} : {
@@ -45,7 +51,9 @@ export default function EvaluationReview() {
           if (active) {
             setSession(restored);
             const next = restored.scenarios.findIndex(row => !row.submitted);
-            setIndex(next < 0 ? 0 : next);
+            const restoredIndex = next < 0 ? 0 : next;
+            setIndex(restoredIndex);
+            setDraft(readDraft(restored, restoredIndex));
           }
         }
       } catch (reason) {
@@ -67,23 +75,10 @@ export default function EvaluationReview() {
   const openScenario = (next: number, current: Session) => {
     setIndex(next);
     setError("");
-    const key = `${SESSION_KEY}:${current.evaluation_id}:${current.scenarios[next].scenario_id}`;
-    try { setDraft(JSON.parse(localStorage.getItem(key) || "null") || emptyDraft()); }
-    catch { setDraft(emptyDraft()); }
+    setDraft(readDraft(current, next));
     heading.current?.focus();
     window.scrollTo({ top: 0, behavior: "instant" });
   };
-
-  // Restore a scenario draft only when the session initially arrives.
-  const restoredId = useRef("");
-  useEffect(() => {
-    if (session && restoredId.current !== session.evaluation_id) {
-      restoredId.current = session.evaluation_id;
-      const key = `${SESSION_KEY}:${session.evaluation_id}:${session.scenarios[index].scenario_id}`;
-      try { setDraft(JSON.parse(localStorage.getItem(key) || "null") || emptyDraft()); }
-      catch { setDraft(emptyDraft()); }
-    }
-  }, [session, index]);
 
   const start = async () => {
     if (inFlight.current) return;
@@ -168,7 +163,7 @@ export default function EvaluationReview() {
             <ol>
               {scenario.lists[side].map(movie => <li key={movie.tmdb_id} data-movie-id={movie.tmdb_id} data-list-side={side}>
                 <div className={styles.movie}>
-                  {movie.poster_url ? <img src={movie.poster_url} alt={`Poster for ${movie.title}`} width={72} height={108} loading="lazy" />
+                  {movie.poster_url ? <Image unoptimized src={movie.poster_url} alt={`Poster for ${movie.title}`} width={72} height={108} loading="lazy" />
                     : <span className={styles.noPoster}>No poster</span>}
                   <div className={styles.movieDetails}><h4>{movie.title} <span>({movie.year ?? "Year unavailable"})</span></h4>
                     <p>{movie.genres || "Genres unavailable"}</p>

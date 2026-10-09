@@ -3,6 +3,7 @@
 
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import MovieCard from "./MovieCard";
 import { useMovieRegion } from "./MovieApp";
 import type { Recommendation } from "./movie-types";
@@ -164,10 +165,6 @@ function PersonSelector({
 
     if (cleanQuery.length < 2) {
 
-      setResults([]);
-
-      setSearching(false);
-
       return;
 
     }
@@ -277,6 +274,7 @@ function PersonSelector({
     setQuery("");
 
     setResults([]);
+    setSearching(false);
 
   }
 
@@ -350,11 +348,14 @@ function PersonSelector({
 
             value={query}
 
-            onChange={(event) =>
-
-              setQuery(event.target.value)
-
-            }
+            onChange={(event) => {
+              const next = event.target.value;
+              setQuery(next);
+              if (next.trim().length < 2) {
+                setResults([]);
+                setSearching(false);
+              }
+            }}
 
             placeholder={
 
@@ -1078,10 +1079,6 @@ export default function ManualRecommend() {
 
     if (query.length < 2) {
 
-      setSearchResults([]);
-
-      setSearching(false);
-
       return;
 
     }
@@ -1249,6 +1246,7 @@ export default function ManualRecommend() {
     setSearch("");
 
     setSearchResults([]);
+    setSearching(false);
 
   }
 
@@ -1841,15 +1839,14 @@ export default function ManualRecommend() {
 
               value={search}
 
-              onChange={(event) =>
-
-                setSearch(
-
-                  event.target.value
-
-                )
-
-              }
+              onChange={(event) => {
+                const next = event.target.value;
+                setSearch(next);
+                if (next.trim().length < 2) {
+                  setSearchResults([]);
+                  setSearching(false);
+                }
+              }}
 
               placeholder="Search for Interstellar, The Godfather..."
 
@@ -1917,7 +1914,7 @@ export default function ManualRecommend() {
 
                       {movie.poster_url ? (
 
-                        <img
+                        <Image unoptimized loading="eager" width={48} height={72}
 
                           src={
 
@@ -2075,7 +2072,7 @@ export default function ManualRecommend() {
 
                     {movie.poster_url ? (
 
-                      <img
+                      <Image unoptimized loading="eager" width={48} height={72}
 
                         src={
 

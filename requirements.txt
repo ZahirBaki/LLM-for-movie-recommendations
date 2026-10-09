@@ -1,0 +1,16 @@
+# Core application dependencies; existing chat/model additions stay separate.
+-r requirements-chat.txt
+fastapi
+uvicorn
+pydantic>=2,<3
+python-dotenv
+requests
+pandas
+numpy
+scipy
+scikit-learn
+# Offline SDK/HTTP tests and optional local browser checks
+httpx
+playwright
+# Historical Streamlit prototype (not required by FastAPI/Next)
+streamlit
